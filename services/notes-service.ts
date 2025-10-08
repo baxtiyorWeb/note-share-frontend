@@ -15,7 +15,6 @@ export interface Note {
   totalLikes?: number;
   totalComments?: number;
   profile: Profile;
-  sharedWith?: Profile[];
 }
 export interface CreateNoteData {
   title: string;

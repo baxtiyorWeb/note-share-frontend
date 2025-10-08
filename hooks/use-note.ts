@@ -46,7 +46,6 @@ export const useCreateNote = (): UseMutationResult<Note, Error, CreateNoteData> 
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           profile: {} as any,
-          sharedWith: [],
           views: {} as any,
           likes: {} as any,
           comments: [] as any,
@@ -144,8 +143,6 @@ export const useShareNote = (): UseMutationResult<{ message: string; }, Error, {
   return useMutation({
     mutationFn: ({ noteId, targetProfileId }) => shareNote(noteId, targetProfileId),
     onSuccess: (data, variables) => {
-      // Ulashilgandan so'ng, note'ning o'zida "shared with" degan ma'lumot yangilanishi mumkin.
-      // Shuning uchun ham ro'yxatni, ham alohida note'ni yangilagan ma'qul.
       queryClient.invalidateQueries({ queryKey: ['notes'] });
       queryClient.invalidateQueries({ queryKey: ['note', variables.noteId] });
     },

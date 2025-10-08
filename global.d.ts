@@ -8,3 +8,6 @@ declare module '@tiptap/extension-table-cell';
 declare module '@tiptap/suggestion';
 declare module 'lowlight/lib/common';
 declare module 'turndown';
+// src/global.d.ts
+declare module "turndown-plugin-gfm";
+
