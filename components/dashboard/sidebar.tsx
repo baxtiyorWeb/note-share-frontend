@@ -1,3 +1,5 @@
+// src/components/dashboard/sidebar.tsx
+
 "use client"
 
 import Link from "next/link"
@@ -10,17 +12,14 @@ import { useMyProfile } from "@/hooks/use-profile"
 import { logout } from "@/services/auth-service"
 import { useState } from "react"
 import { motion } from "framer-motion"
+
 const menuItems = [
   { icon: FileText, label: "My Notes", href: "/dashboard" },
   { icon: Plus, label: "New Note", href: "/dashboard/new" },
   { icon: Share2, label: "Shared with Me", href: "/dashboard/shared" },
 ];
-const settingsMenuItem = { icon: Settings, label: "Settings", href: "/dashboard/settings" };
-const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.3 } } };
-const profileVariants = { hidden: { opacity: 0, y: -10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3, delay: 0.1 } } };
-const navVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.07, delayChildren: 0.2 } } };
-const itemVariants = { hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } };
 
+const settingsMenuItem = { icon: Settings, label: "Settings", href: "/dashboard/settings" };
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -36,12 +35,8 @@ export function Sidebar() {
   }
 
   const getInitials = (name?: string, email?: string) => {
-    if (name) {
-      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    }
-    if (email) {
-      return email.substring(0, 2).toUpperCase()
-    }
+    if (name) return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    if (email) return email.substring(0, 2).toUpperCase()
     return "U"
   }
 
@@ -49,12 +44,7 @@ export function Sidebar() {
   const initials = getInitials(user?.profile?.username, user?.email)
 
   return (
-    <motion.aside
-      className="hidden lg:flex w-64 h-screen flex-col fixed inset-y-0 z-50 bg-slate-100 border-r border-slate-200 dark:bg-slate-950 dark:border-slate-800"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <aside className="hidden lg:flex w-64 h-screen flex-col fixed inset-y-0 z-50 bg-slate-100 border-r border-slate-200 dark:bg-slate-950 dark:border-slate-800">
       <div className="p-4 border-b border-slate-200 dark:border-slate-800">
         <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <BookOpen className="w-6 h-6 text-violet-500 dark:text-violet-400" />
@@ -62,7 +52,7 @@ export function Sidebar() {
         </Link>
       </div>
 
-      <motion.div className="p-4" variants={profileVariants}>
+      <div className="p-4">
         {isLoading ? (
           <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-200/60 dark:bg-slate-800/50 animate-pulse">
             <div className="w-10 h-10 bg-slate-300 dark:bg-slate-700 rounded-full" />
@@ -83,40 +73,35 @@ export function Sidebar() {
             </div>
           </div>
         )}
-      </motion.div>
+      </div>
 
-      {/* Navigation */}
-      <motion.nav className="flex-1 px-4 py-2 space-y-1" variants={navVariants}>
+      <nav className="flex-1 px-4 py-2 space-y-1">
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
           return (
-            <motion.div key={item.href} variants={itemVariants}>
-              <Link
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors relative",
-                  isActive
-                    ? "bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300"
-                    : "text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100",
-                )}
-              >
-                {isActive && <motion.div layoutId="active-pill" className="absolute left-0 top-2 bottom-2 w-1 bg-violet-500 dark:bg-violet-400 rounded-r-full"></motion.div>}
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </Link>
-            </motion.div>
+            <Link key={item.href} href={item.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors relative",
+                isActive
+                  ? "bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300"
+                  : "text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100",
+              )}
+            >
+              {isActive && <motion.div layoutId="active-pill" className="absolute left-0 top-2 bottom-2 w-1 bg-violet-500 dark:bg-violet-400 rounded-r-full"></motion.div>}
+              <Icon className="w-5 h-5" />
+              <span>{item.label}</span>
+            </Link>
           )
         })}
-      </motion.nav>
+      </nav>
 
-      <motion.div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+      <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-1">
         {(() => {
           const Icon = settingsMenuItem.icon;
           const isActive = pathname === settingsMenuItem.href;
           return (
-            <Link
-              href={settingsMenuItem.href}
+            <Link href={settingsMenuItem.href}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors w-full",
                 isActive
@@ -138,18 +123,12 @@ export function Sidebar() {
           disabled={isLoggingOut}
         >
           {isLoggingOut ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Chiqilmoqda...</span>
-            </>
+            <><Loader2 className="h-5 w-5 animate-spin" /><span>Chiqilmoqda...</span></>
           ) : (
-            <>
-              <LogOut className="w-5 h-5" />
-              <span>Chiqish</span>
-            </>
+            <><LogOut className="h-5 w-5" /><span>Chiqish</span></>
           )}
         </Button>
-      </motion.div>
-    </motion.aside>
+      </div>
+    </aside>
   )
 }
