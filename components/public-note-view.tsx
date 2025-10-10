@@ -10,7 +10,6 @@ interface PublicNoteViewProps {
   noteId: string;
 }
 
-// Mock data for public notes
 const mockPublicNotes: Record<
   string,
   { title: string; content: string; author: string }
@@ -40,7 +39,7 @@ export function PublicNoteView({ noteId }: PublicNoteViewProps) {
     content: string;
     author: string;
   } | null>(null);
-  const [isLoggedIn] = useState(false); // Mock auth state
+  const [isLoggedIn] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -63,7 +62,7 @@ export function PublicNoteView({ noteId }: PublicNoteViewProps) {
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">Note not found</h1>
           <p className="text-muted-foreground">
-            This note doesn't exist or has been deleted.
+            This note doesn&apos;t exist or has been deleted.
           </p>
           <Button asChild>
             <Link href="/">Go Home</Link>

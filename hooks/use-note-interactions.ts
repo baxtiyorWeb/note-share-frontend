@@ -1,4 +1,3 @@
-// src/hooks/useNoteInteractions.ts
 import { useMutation, useQuery, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query-client';
 import {
@@ -40,7 +39,8 @@ export const useAddComment = (): UseMutationResult<AddCommentResponse, Error, { 
       queryClient.setQueryData(['comments', variables.noteId], (old: Comment[] | undefined) =>
         old ? [...old, data.comment] : [data.comment]
       );
-    },
+      queryClient.invalidateQueries({ queryKey: ['comments', variables.noteId] });
+    }
   });
 };
 
@@ -49,17 +49,21 @@ export const useGetComments = (noteId: number): UseQueryResult<Comment[], Error>
     queryKey: ['comments', noteId],
     queryFn: () => getComments(noteId),
     enabled: !!noteId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
-export const useDeleteComment = (): UseMutationResult<{ message: string }, Error, number> => {
+export const useDeleteComment = () => {
   return useMutation({
-    mutationFn: deleteComment,
-    onSuccess: (_, commentId) => {
-      queryClient.setQueryData(['comments'], (old: Comment[] | undefined) =>
-        old ? old.filter(c => c.id !== commentId) : old
+    mutationFn: async ({ commentId, noteId }: { commentId: number; noteId: number }) =>
+      deleteComment(commentId, noteId),
+
+    onSuccess: (_, variables) => {
+      queryClient.setQueryData<Comment[]>(['comments', variables.noteId], (old) =>
+        old ? old.filter((c) => c.id !== variables.commentId) : old
       );
+
+      queryClient.invalidateQueries({ queryKey: ['comments', variables.noteId] });
     },
   });
 };

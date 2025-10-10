@@ -1,4 +1,3 @@
-// src/services/notes-service.ts
 import api from "@/config/api";
 import { NoteComment, NoteLike, NoteView } from "@/types";
 import { Profile } from "./profile-service";
@@ -31,13 +30,11 @@ export const createNote = async (data: CreateNoteData): Promise<Note> => {
   return response.data;
 };
 
-// Bu endi FAQAT o'zingizning notelaringizni oladi
 export const getAllNotes = async (): Promise<Note[]> => {
   const response = await api.get('/notes');
   return response.data;
 };
 
-// ✅ YANGI FUNKSIYA QO'SHILDI
 export const getSharedWithMeNotes = async (): Promise<Note[]> => {
   const response = await api.get('/notes/shared-with-me');
   return response.data;

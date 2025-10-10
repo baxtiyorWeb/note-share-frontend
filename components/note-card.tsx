@@ -8,7 +8,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Note, Profile } from "../types";
 
-// Yordamchi funksiyalar
 const getInitials = (profile?: Profile) => {
   if (!profile) return "U";
   const name = profile.username || profile.firstName || "User";
@@ -24,11 +23,9 @@ const formatRelativeTime = (dateString?: string) => {
   if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-  // ... va hokazo
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// Komponent qabul qiladigan proplar
 interface NoteCardProps {
   note: Note;
   onView: (note: Note) => void;

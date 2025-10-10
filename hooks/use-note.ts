@@ -7,10 +7,10 @@ import {
   deleteNote,
   shareNote,
   getSharedWithMeNotes
-} from '@/services/notes-service'; // API service'laringizni to'g'ri yo'ldan import qiling
-import type { Note, CreateNoteData, UpdateNoteData } from '@/services/notes-service'; // Tiplaringizni import qiling
+} from '@/services/notes-service';
+import type { Note, CreateNoteData, UpdateNoteData } from '@/services/notes-service';
+import { useState } from 'react';
 
-// Barcha note'larni olish uchun hook
 export const useNotes = (): UseQueryResult<Note[], Error> => {
   return useQuery({
     queryKey: ['notes'],
@@ -18,16 +18,30 @@ export const useNotes = (): UseQueryResult<Note[], Error> => {
   });
 };
 
-// ID bo'yicha bitta note'ni olish uchun hook
 export const useNote = (id: number): UseQueryResult<Note, Error> => {
   return useQuery({
     queryKey: ['note', id],
     queryFn: () => getNoteById(id),
-    enabled: !!id, // Faqat id mavjud bo'lgandagina ishga tushadi
+    enabled: !!id,
   });
 };
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+export const useUploadImage = () => {
+  const [isPending, setIsPending] = useState(false);
 
-// 🚀 Yangi note yaratish uchun optimistik hook
+  const mutate = async (file: File, options: { onSuccess: (data: { url: string }) => void; onError: (error: Error) => void; }) => {
+    setIsPending(true);
+    await sleep(1000);
+
+    const mockUrl = URL.createObjectURL(file);
+
+    options.onSuccess({ url: mockUrl });
+    setIsPending(false);
+  };
+
+  return { mutate, isPending };
+};
+
 export const useCreateNote = (): UseMutationResult<Note, Error, CreateNoteData> => {
   const queryClient = useQueryClient();
 
@@ -67,7 +81,6 @@ export const useCreateNote = (): UseMutationResult<Note, Error, CreateNoteData> 
 
 };
 
-// 🚀 Note'ni tahrirlash uchun optimistik hook
 export const useUpdateNote = (): UseMutationResult<Note, Error, { id: number; data: UpdateNoteData }> => {
   const queryClient = useQueryClient();
 
@@ -80,12 +93,10 @@ export const useUpdateNote = (): UseMutationResult<Note, Error, { id: number; da
       const previousNotes = queryClient.getQueryData<Note[]>(['notes']);
       const previousNote = queryClient.getQueryData<Note>(['note', id]);
 
-      // Umumiy ro'yxatni optimistik yangilaymiz
       queryClient.setQueryData<Note[]>(['notes'], (old = []) =>
         old.map(note => (note.id === id ? { ...note, ...data } : note))
       );
 
-      // Alohida note sahifasini optimistik yangilaymiz
       if (previousNote) {
         queryClient.setQueryData<Note>(['note', id], { ...previousNote, ...data });
       }
@@ -107,7 +118,6 @@ export const useUpdateNote = (): UseMutationResult<Note, Error, { id: number; da
   });
 };
 
-// 🚀 Note'ni o'chirish uchun optimistik hook
 export const useDeleteNote = (): UseMutationResult<void, Error, number> => {
   const queryClient = useQueryClient();
 
@@ -118,7 +128,6 @@ export const useDeleteNote = (): UseMutationResult<void, Error, number> => {
 
       const previousNotes = queryClient.getQueryData<Note[]>(['notes']);
 
-      // Ro'yxatdan o'chirilayotgan note'ni olib tashlaymiz
       queryClient.setQueryData<Note[]>(['notes'], (old = []) =>
         old.filter(note => note.id !== noteId)
       );

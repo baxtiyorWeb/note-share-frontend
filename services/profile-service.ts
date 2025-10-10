@@ -1,4 +1,3 @@
-// src/services/profileService.ts - Updated endpoints
 import api from "@/config/api";
 
 export interface Profile {
@@ -7,13 +6,14 @@ export interface Profile {
   firstName?: string;
   lastName?: string;
   avatar?: string
-  // Add more fields as needed, e.g., bio: string, avatarUrl: string
+  coverImage?: string;
 }
 
 export interface UserWithProfile {
   id: number;
   email: string;
   profile: Profile;
+
 }
 
 export const getMyProfile = async (): Promise<UserWithProfile> => {
@@ -28,7 +28,7 @@ export const getProfileByUsername = async (username: string): Promise<Profile> =
 
 export const updateProfile = async (data: Partial<Profile>): Promise<Profile> => {
   const response = await api.put('/profile/update', data);
-  return response.data.data; // Based on controller return { message, data }
+  return response.data.data;
 };
 
 export const deleteProfile = async (): Promise<{ message: string }> => {

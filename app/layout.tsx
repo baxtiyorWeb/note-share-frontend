@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { QueryProvider } from "@/lib/query-provider"
 import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
   title: "NoteShare - Share Your Notes, Anytime, Anywhere",
@@ -22,7 +23,17 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <QueryProvider>
-          <Suspense fallback={null}>{children}</Suspense>
+          <Suspense fallback={null}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+            </ThemeProvider>
+
+          </Suspense>
           <Analytics />
         </QueryProvider>
       </body>

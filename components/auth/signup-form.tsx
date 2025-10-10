@@ -1,105 +1,150 @@
-// src/components/SignUpForm.tsx
 "use client"
 
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { motion } from "framer-motion";
+import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useRegister } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 const signUpSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().email("Iltimos, to'g'ri email manzil kiriting"),
+  password: z.string().min(6, "Parol kamida 6 belgidan iborat bo'lishi kerak"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
+  message: "Parollar mos kelmadi",
   path: ["confirmPassword"],
 });
 
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export function SignUpForm() {
-  const { register, handleSubmit, formState: { errors } } = useForm<SignUpFormData>({
+  const router = useRouter();
+  const [serverError, setServerError] = React.useState<string | null>(null);
+
+  const form = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
 
   const mutation = useRegister();
 
   const onSubmit = (data: SignUpFormData) => {
-    mutation.mutate(data, {
+    setServerError(null);
+    const { email, password, confirmPassword } = data;
+    mutation.mutate({ email, password, confirmPassword }, {
       onSuccess: () => {
-        // Redirect to dashboard or login
-        window.location.href = '/dashboard';
+        toast.success("Hisob muvaffaqiyatli yaratildi!");
+        router.push('/dashboard');
       },
-      onError: (error) => {
-        console.error("Sign up error:", error);
-        // Handle error
+      onError: (error: any) => {
+        const errorMessage = error.response?.data?.message || "Ro'yxatdan o'tishda xatolik yuz berdi.";
+        setServerError(errorMessage);
       },
     });
   };
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              {...register("email")}
-              className={cn(errors.email ? "border-destructive" : "")}
-            />
-            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-          </div>
+    <div className="relative min-h-full w-full flex items-center justify-center overflow-hidden bg-slate-900 p-4">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150%] h-[150%] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.25),rgba(255,255,255,0))] -z-0"></div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              {...register("password")}
-              className={cn(errors.password ? "border-destructive" : "")}
-            />
-            {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="••••••••"
-              {...register("confirmPassword")}
-              className={cn(errors.confirmPassword ? "border-destructive" : "")}
-            />
-            {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>}
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full transition-all duration-300 ease-in-out"
-            disabled={mutation.isPending}
-          >
-            {mutation.isPending ? (
-              <span className="flex items-center justify-center">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating account...
-              </span>
-            ) : (
-              "Sign Up"
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="relative z-10 w-full"
+      >
+        <Card className="w-full max-w-md mx-auto bg-slate-900/60 backdrop-blur-lg border border-slate-700/50 shadow-2xl shadow-black/25 text-slate-50">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold tracking-tight text-slate-50">Hisob Yaratish</CardTitle>
+            <CardDescription className="text-slate-400">Boshlash uchun ma&apos;lumotlarni to&apos;ldiring</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-6">
+            {serverError && (
+              <Alert variant="destructive" className="bg-red-900/20 border-red-500/30 text-red-300">
+                <AlertCircle className="h-4 w-4 text-red-400" />
+                <AlertTitle>Xatolik</AlertTitle>
+                <AlertDescription>{serverError}</AlertDescription>
+              </Alert>
             )}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-300">Email</FormLabel>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                        <FormControl>
+                          <Input placeholder="siz@email.com" {...field} className="pl-10 bg-slate-800/50 border-slate-600 focus:border-violet-500 placeholder:text-slate-500" />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-300">Parol</FormLabel>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} className="pl-10 bg-slate-800/50 border-slate-600 focus:border-violet-500 placeholder:text-slate-500" />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-300">Parolni Tasdiqlang</FormLabel>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} className="pl-10 bg-slate-800/50 border-slate-600 focus:border-violet-500 placeholder:text-slate-500" />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full bg-violet-600 text-white hover:bg-violet-500 disabled:bg-slate-700" disabled={mutation.isPending}>
+                  {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {mutation.isPending ? "Yaratilmoqda..." : "Ro'yxatdan o'tish"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          <CardFooter className="justify-center text-sm">
+            <p className="text-slate-400">Hisobingiz bormi?{" "}
+              <Link href="/login" className="font-semibold text-violet-400 hover:text-violet-300 transition-colors">Kirish</Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </motion.div>
+    </div>
   );
 }

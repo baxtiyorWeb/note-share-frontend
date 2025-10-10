@@ -3,7 +3,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Updated to vibrant, eye-catching color scheme inspired by design references */
 :root {
   --background: oklch(0.99 0.005 280);
   --foreground: oklch(0.15 0.02 280);
@@ -11,15 +10,12 @@
   --card-foreground: oklch(0.15 0.02 280);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.02 280);
-  /* Vibrant purple primary */
   --primary: oklch(0.608 0.248 293.756);
   --primary-foreground: oklch(1 0 0);
-  /* Cyan/teal secondary */
   --secondary: oklch(0.708 0.148 211.327);
   --secondary-foreground: oklch(0.15 0.02 280);
   --muted: oklch(0.96 0.005 280);
   --muted-foreground: oklch(0.556 0.015 280);
-  /* Hot pink accent */
   --accent: oklch(0.658 0.248 343.246);
   --accent-foreground: oklch(1 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -35,7 +31,6 @@
   --chart-4: oklch(0.728 0.189 84.429);
   --chart-5: oklch(0.669 0.188 70.08);
   --radius: 0.75rem;
-  /* Vibrant sidebar with gradient feel */
   --sidebar: oklch(0.99 0.005 280);
   --sidebar-foreground: oklch(0.15 0.02 280);
   --sidebar-primary: oklch(0.608 0.248 293.756);
@@ -136,7 +131,6 @@
   }
 }
 
-/* src/app/globals.css */
 
 .content-fade {
   position: relative;
@@ -157,20 +151,16 @@
   text-align: left;
 }
 
-/* Ustun chegarasiga yaqinlashganda resize kursor */
 .ProseMirror table th,
 .ProseMirror table td {
   position: relative;
 }
 
-/* Hoverda kursorni o'zgartirish */
 .ProseMirror table th:hover,
 .ProseMirror table td:hover {
   cursor: cell;
-  /* yoki 'col-resize' yoki 'row-resize' */
 }
 
-/* Ustun chegarasiga yaqin kelsa */
 .ProseMirror table th::after,
 .ProseMirror table td::after {
   content: '';
@@ -180,12 +170,10 @@
   height: 100%;
   width: 5px;
   cursor: col-resize;
-  /* ustun kengligini o‘zgartirish uchun */
 }
 
 .ProseMirror table tr:last-child td::after {
   cursor: row-resize;
-  /* qator qo‘shish uchun pastda */
 }
 
 .prose ul {
@@ -217,4 +205,13 @@
   font-weight: 600;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
+}
+
+.prose p a {
+  color: blueviolet;
+  text-decoration: underline;
+}
+
+.prose img {
+  border-radius: 8px;
 }

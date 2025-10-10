@@ -26,12 +26,9 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
 
   return (
     <>
-      {/* Backdrop */}
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden" onClick={onClose} />
 
-      {/* Sidebar */}
       <aside className="fixed left-0 top-0 bottom-0 w-64 border-r border-border bg-sidebar z-50 lg:hidden flex flex-col">
-        {/* Header */}
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2" onClick={onClose}>
             <BookOpen className="w-6 h-6 text-sidebar-primary" />
@@ -42,7 +39,6 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           </button>
         </div>
 
-        {/* Profile */}
         <div className="p-6 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
             <Avatar>
@@ -55,7 +51,6 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon
@@ -79,7 +74,6 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           })}
         </nav>
 
-        {/* Logout */}
         <div className="p-4 border-t border-sidebar-border">
           <Button variant="ghost" className="w-full justify-start gap-3" asChild>
             <Link href="/login" onClick={onClose}>

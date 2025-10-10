@@ -1,30 +1,12 @@
-import Link from "next/link"
-import { BookOpen } from "lucide-react"
-import { LoginForm } from "@/components/auth/login-form"
+
+import { LoginForm } from "@/components/auth/login-form";
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="flex flex-col items-center space-y-4">
-          <Link href="/" className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity">
-            <BookOpen className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold tracking-tight">NoteShare</span>
-          </Link>
-          <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tighter">Xush Kelibsiz!</h1>
-            <p className="text-muted-foreground">Davom etish uchun hisobingizga kiring</p>
-          </div>
-        </div>
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-slate-900 p-4">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150%] h-[150%] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.25),rgba(255,255,255,0))] -z-0"></div>
 
-        <LoginForm />
-        <p className="text-center text-sm text-muted-foreground">
-          Hisobingiz yo'qmi?{" "}
-          <Link href="/signup" className="font-semibold text-primary hover:underline">
-            Ro'yxatdan o'tish
-          </Link>
-        </p>
-      </div>
+      <LoginForm />
     </div>
-  )
+  );
 }

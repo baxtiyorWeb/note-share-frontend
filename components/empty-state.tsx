@@ -1,4 +1,3 @@
-// 📁 app/dashboard/notes/components/EmptyState.tsx
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { NotebookPen, Plus } from "lucide-react";
@@ -11,7 +10,7 @@ export function EmptyState() {
         <NotebookPen className="w-12 h-12 text-primary" />
         <div className="space-y-2">
           <h2 className="text-2xl font-bold">Your Notebook is Empty</h2>
-          <p className="text-muted-foreground max-w-sm">Let's start by creating your first note!</p>
+          <p className="text-muted-foreground max-w-sm">Let&apos;s start by creating your first note!</p>
         </div>
         <Button asChild size="lg">
           <Link href="/dashboard/new"><Plus className="w-5 h-5 mr-2" /> Create First Note</Link>

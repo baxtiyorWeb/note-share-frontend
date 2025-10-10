@@ -48,7 +48,9 @@ export const getComments = async (noteId: number): Promise<Comment[]> => {
   return response.data;
 };
 
-export const deleteComment = async (commentId: number): Promise<{ message: string }> => {
-  const response = await api.delete(`/notes/${commentId}/comment`);
+export const deleteComment = async (commentId: number, noteId: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/notes/${noteId}/comment/${commentId}`);
+  console.log(response);
+
   return response.data;
 };

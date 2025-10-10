@@ -1,327 +1,240 @@
 "use client"
 
-import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Loader2, User, Image, Trash2 } from "lucide-react"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useMyProfile, useUpdateProfile, useDeleteProfile } from "@/hooks/use-profile"
-import { motion } from "framer-motion"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { useEffect, useState } from "react"
-import { cn } from "@/lib/utils"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-
+import React, { useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { motion } from "framer-motion";
+import { Loader2, Image, Trash2 } from "lucide-react";
+import toast from "react-hot-toast";
+import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useMyProfile, useUpdateProfile, useDeleteProfile } from "@/hooks/use-profile";
+import { UploadService } from "@/services/upload-service";
 const profileSchema = z.object({
-  firstName: z.string().min(1, "First name is required").max(50, "First name must be at most 50 characters"),
-  lastName: z.string().min(1, "Last name is required").max(50, "Last name must be at most 50 characters"),
-  username: z.string().min(3, "Username must be at least 3 characters").max(20, "Username must be at most 20 characters"),
-  avatar: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+  firstName: z.string().min(1, "Ism kiritilishi shart").max(50),
+  lastName: z.string().min(1, "Familiya kiritilishi shart").max(50),
+  username: z.string().min(3, "Username kamida 3 belgidan iborat bo'lishi kerak").max(20),
+  avatar: z.string().url("Iltimos, to'g'ri URL kiriting").optional().or(z.literal("")),
+  coverImage: z.string().url("Iltimos, to'g'ri URL kiriting").optional().or(z.literal("")),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
-const containerVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-}
-
-const itemVariants = {
-  hidden: { opacity: 0, x: -20 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.3 } }
-}
-
-const fieldVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.2 } }
-}
+const containerVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.1 } } };
+const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 
 export default function SettingsPage() {
-  const { data: user, isLoading } = useMyProfile()
-  const updateMutation = useUpdateProfile()
-  const deleteMutation = useDeleteProfile()
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const { data: user, isLoading } = useMyProfile();
+  const updateMutation = useUpdateProfile();
+  const deleteMutation = useDeleteProfile();
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<ProfileFormData>({
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false);
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverImageInputRef = useRef<HTMLInputElement>(null);
+
+  const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
-  })
-
-  const avatarUrl = watch("avatar")
+    defaultValues: { firstName: "", lastName: "", username: "", avatar: "", coverImage: "" }
+  });
 
   useEffect(() => {
     if (user?.profile) {
-      const profile = user.profile
-      setValue("firstName", profile.firstName || "")
-      setValue("lastName", profile.lastName || "")
-      setValue("username", profile.username || "")
-      setValue("avatar", profile.avatar || "")
-      setAvatarPreview(profile.avatar || null)
+      const profile = user.profile;
+      form.reset({
+        firstName: profile.firstName || "",
+        lastName: profile.lastName || "",
+        username: profile.username || "",
+        avatar: profile.avatar || "",
+        coverImage: profile.coverImage || ""
+      });
+      setAvatarPreview(profile.avatar || null);
+      setCoverImagePreview(profile.coverImage || null);
     }
-  }, [user, setValue])
+  }, [user, form.reset]);
 
-  useEffect(() => {
-    if (avatarUrl) {
-      setAvatarPreview(avatarUrl)
+  const handleAvatarFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setAvatarPreview(URL.createObjectURL(file));
+      setIsAvatarUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await UploadService.uploadAvatar(formData);
+        form.setValue("avatar", response.avatarUrl, { shouldValidate: true });
+        toast.success("Avatar yuklandi");
+      } catch (error) {
+        toast.error("Avatarni yuklashda xatolik");
+        setAvatarPreview(user?.profile?.avatar || null);
+      } finally {
+        setIsAvatarUploading(false);
+      }
     }
-  }, [avatarUrl])
+  };
+
+  const handleCoverImageFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setCoverImagePreview(URL.createObjectURL(file));
+      setIsCoverUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await UploadService.uploadCoverImage(formData); // Buni o'zingizni servisingizga moslang
+        form.setValue("coverImage", response.coverImageUrl, { shouldValidate: true });
+        toast.success("Muqova rasmi yuklandi");
+      } catch (error) {
+        toast.error("Muqova rasmini yuklashda xatolik");
+        setCoverImagePreview(user?.profile?.coverImage || null);
+      } finally {
+        setIsCoverUploading(false);
+      }
+    }
+  };
 
   const onSubmit = (data: ProfileFormData) => {
-    updateMutation.mutate(data, {
-      onSuccess: (updatedProfile) => {
-        // Update local preview
-        if (updatedProfile.avatar) {
-          setAvatarPreview(updatedProfile.avatar)
-        }
-      },
-    })
-  }
+    toast.promise(updateMutation.mutateAsync(data), {
+      loading: "Profil yangilanmoqda...",
+      success: "Profil muvaffaqiyatli yangilandi!",
+      error: "Profilni yangilashda xatolik yuz berdi"
+    });
+  };
 
   const handleDelete = () => {
-    deleteMutation.mutate()
-  }
+    toast.promise(deleteMutation.mutateAsync(), {
+      loading: "Hisob o'chirilmoqda...",
+      success: "Hisobingiz muvaffaqiyatli o'chirildi",
+      error: "Hisobni o'chirishda xatolik yuz berdi"
+    });
+  };
 
-  const getInitials = (firstName?: string, lastName?: string) => {
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase()
-  }
+  const getInitials = (firstName?: string, lastName?: string) => `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase();
 
-  const displayName = user?.profile?.username || `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`.trim() || "User"
-
-  if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="space-y-6">
-          <div>
-            <Skeleton className="h-9 w-48" />
-            <Skeleton className="h-5 w-64 mt-2" />
-          </div>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </CardContent>
-          </Card>
-        </div>
-      </DashboardLayout>
-    )
-  }
+  if (isLoading) { /* ... yuklanish holati ... */ }
 
   return (
     <DashboardLayout>
-      <motion.div
-        className="space-y-6"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <motion.div className="p-6 sm:p-8 md:p-10 space-y-8" variants={containerVariants} initial="hidden" animate="visible">
         <motion.div variants={itemVariants}>
-          <h1 className="text-3xl font-bold">Profile Settings</h1>
-          <p className="text-muted-foreground mt-2">Manage your profile information</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Sozlamalar</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">O'z profilingiz ma'lumotlarini boshqaring</p>
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <Card className="border-2 border-primary/20 shadow-lg shadow-primary/5 hover:shadow-primary/10 transition-shadow duration-300 overflow-hidden">
-            <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-accent/5">
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-primary" />
-                Account Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {/* Profile Preview */}
-              <motion.div
-                className="flex items-center gap-6 mb-8 p-4 bg-muted/50 rounded-xl"
-                variants={fieldVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                <div className="flex-shrink-0">
-                  <Avatar className="h-20 w-20 ring-2 ring-primary/20">
-                    {avatarPreview ? (
-                      <AvatarImage src={avatarPreview} alt={displayName} className="object-cover" />
-                    ) : null}
-                    <AvatarFallback className="h-20 w-20 text-lg font-semibold bg-gradient-to-br from-primary to-accent text-white">
-                      {getInitials(user?.profile?.firstName, user?.profile?.lastName)}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xl font-bold truncate">{displayName}</p>
-                  <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Profile preview</p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setValue("avatar", "")}
-                  className="gap-1 text-destructive hover:text-destructive/80"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  Remove
-                </Button>
-              </motion.div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <CardContent className="p-0">
+                  <div className="relative p-6 h-48 flex items-end bg-slate-100 dark:bg-slate-800/50">
+                    {coverImagePreview && (
+                      <img src={coverImagePreview} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                {/* Avatar URL Input */}
-                <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-4" variants={fieldVariants}>
-                  <div className="md:col-span-2 space-y-2">
-                    <Label htmlFor="avatar">Profile Picture URL</Label>
-                    <Input
-                      id="avatar"
-                      placeholder="https://example.com/avatar.jpg"
-                      {...register("avatar")}
-                      className={cn(errors.avatar ? "border-destructive" : "")}
-                    />
-                    {errors.avatar && <p className="text-sm text-destructive">{errors.avatar.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="sr-only">Preview</Label>
-                    {avatarPreview ? (
-                      <img
-                        src={avatarPreview}
-                        alt="Avatar preview"
-                        className="w-full h-20 object-cover rounded-lg border-2 border-muted"
-                        onError={() => setAvatarPreview(null)}
-                      />
-                    ) : (
-                      <div className="w-full h-20 bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
-                        <Image className="h-6 w-6" />
+                    <div className="absolute top-4 right-4 flex gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => coverImageInputRef.current?.click()} disabled={isCoverUploading} className="bg-black/20 hover:bg-black/40 text-white border-white/30 h-8">
+                        {isCoverUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
+                        <span className="ml-2 hidden sm:inline">O'zgartirish</span>
+                      </Button>
+                      <input type="file" ref={coverImageInputRef} onChange={handleCoverImageFileChange} accept="image/*" className="hidden" />
+                      {coverImagePreview && (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          onClick={() => {
+                            form.setValue("coverImage", "");
+                            setCoverImagePreview(null);
+                          }}
+                          className="bg-black/20 hover:bg-black/40 text-white border-white/30 h-8 w-8"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="relative flex items-center gap-4">
+                      <div className="relative">
+                        <Avatar className="h-24 w-24 ring-4 ring-white dark:ring-slate-900 border-2 border-slate-300 dark:border-slate-600" >
+                          <AvatarImage src={avatarPreview || undefined} />
+                          <AvatarFallback className="text-2xl bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                            {getInitials(user?.profile?.firstName, user?.profile?.lastName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {isAvatarUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full"><Loader2 className="animate-spin text-white" /></div>}
                       </div>
-                    )}
+                      <div>
+                        <h2 className="text-xl font-bold text-white drop-shadow-md">{user?.profile?.username || "User"}</h2>
+                        <p className="text-sm text-slate-300 drop-shadow-sm">{user?.email}</p>
+                      </div>
+                    </div>
                   </div>
-                </motion.div>
+                  <div className="p-6 space-y-6">
+                    <div className="flex justify-center sm:justify-start -mt-20 sm:ml-32">
+                      <Button type="button" size="sm" variant="outline" onClick={() => avatarInputRef.current?.click()} disabled={isAvatarUploading} className="bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-600">
+                        <Image className="h-4 w-4 mr-2" /> Avatar o'zgartirish
+                      </Button>
+                      <input type="file" ref={avatarInputRef} onChange={handleAvatarFileChange} accept="image/*" className="hidden" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
+                      <FormField control={form.control} name="firstName" render={({ field }) => (<FormItem><FormLabel className="text-slate-700 dark:text-slate-300">Ism</FormLabel><FormControl><Input {...field} className="bg-transparent dark:bg-slate-800 border-slate-300 dark:border-slate-700" /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="lastName" render={({ field }) => (<FormItem><FormLabel className="text-slate-700 dark:text-slate-300">Familiya</FormLabel><FormControl><Input {...field} className="bg-transparent dark:bg-slate-800 border-slate-300 dark:border-slate-700" /></FormControl><FormMessage /></FormItem>)} />
+                    </div>
+                    <FormField control={form.control} name="username" render={({ field }) => (<FormItem><FormLabel className="text-slate-700 dark:text-slate-300">Username</FormLabel><FormControl><Input {...field} className="bg-transparent dark:bg-slate-800 border-slate-300 dark:border-slate-700" /></FormControl><FormMessage /></FormItem>)} />
 
-                {/* Name Fields */}
-                <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-4" variants={fieldVariants}>
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input
-                      id="firstName"
-                      placeholder="Enter your first name"
-                      {...register("firstName")}
-                      className={cn(errors.firstName ? "border-destructive" : "")}
-                    />
-                    {errors.firstName && <p className="text-sm text-destructive">{errors.firstName.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      placeholder="Enter your last name"
-                      {...register("lastName")}
-                      className={cn(errors.lastName ? "border-destructive" : "")}
-                    />
-                    {errors.lastName && <p className="text-sm text-destructive">{errors.lastName.message}</p>}
-                  </div>
-                </motion.div>
-
-                <motion.div className="space-y-2" variants={fieldVariants}>
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    placeholder="Enter your username"
-                    {...register("username")}
-                    className={cn(errors.username ? "border-destructive" : "")}
-                  />
-                  {errors.username && <p className="text-sm text-destructive">{errors.username.message}</p>}
-                </motion.div>
-
-                <motion.div className="space-y-2" variants={fieldVariants}>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    value={user?.email || ''}
-                    disabled
-                    className="bg-muted/50 cursor-not-allowed"
-                  />
-                  <p className="text-xs text-muted-foreground">Email cannot be changed.</p>
-                </motion.div>
-
-                <motion.div variants={fieldVariants}>
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 transition-all duration-300 ease-in-out shadow-lg hover:shadow-primary/20"
-                    disabled={updateMutation.isPending}
-                  >
-                    {updateMutation.isPending ? (
-                      <span className="flex items-center justify-center">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Updating...
-                      </span>
-                    ) : (
-                      "Update Profile"
-                    )}
-                  </Button>
-                </motion.div>
-              </form>
-
-              <div className="mt-8 pt-6 border-t bg-destructive/5 rounded-lg p-4">
-                <h3 className="text-lg font-semibold mb-4 text-destructive flex items-center gap-2">
-                  <Trash2 className="h-4 w-4" />
-                  Danger Zone
-                </h3>
-                <Dialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      className="w-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all duration-300 ease-in-out border-destructive/20"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Account
+                    <Button type="submit" className="bg-slate-900 text-white hover:bg-slate-800 dark:bg-violet-600 dark:text-white dark:hover:bg-violet-500" disabled={updateMutation.isPending || isAvatarUploading || isCoverUploading}>
+                      {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Saqlash
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md bg-background border-destructive/20">
-                    <DialogHeader>
-                      <DialogTitle className="text-destructive">Are you absolutely sure?</DialogTitle>
-                      <DialogDescription>
-                        This action cannot be undone. This will permanently delete your account, notes, and all associated data from our servers.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="sm:justify-start gap-2">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => setOpenDeleteDialog(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        disabled={deleteMutation.isPending}
-                        onClick={handleDelete}
-                        className="gap-2"
-                      >
-                        {deleteMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Deleting...
-                          </>
-                        ) : (
-                          <>
-                            <Trash2 className="h-4 w-4" />
-                            Yes, delete account
-                          </>
-                        )}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </form>
+          </Form>
+        </motion.div>
+
+
+        <motion.div variants={itemVariants}>
+          <Card className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-500/30">
+            <CardHeader>
+              <CardTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
+                <Trash2 className="h-5 w-5" /> Xavfli Hudud
+              </CardTitle>
+              <CardDescription className="text-slate-500 dark:text-slate-400 pt-1">Bu amalni qaytarib bo'lmaydi. Ehtiyot bo'ling.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="destructive" className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:border-transparent">Hisobni o'chirish</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
+                  <DialogHeader>
+                    <DialogTitle className="text-red-600 dark:text-red-400">Haqiqatan ham ishonchingiz komilmi?</DialogTitle>
+                    <DialogDescription className="text-slate-500 dark:text-slate-400">
+                      Bu amalni qaytarib bo'lmaydi. Bu sizning hisobingizni butunlay o'chirib yuboradi va ma'lumotlaringiz serverlarimizdan olib tashlanadi.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter className="gap-2">
+                    <DialogTrigger asChild><Button type="button" variant="outline" className="dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">Bekor qilish</Button></DialogTrigger>
+                    <Button type="button" variant="destructive" disabled={deleteMutation.isPending} onClick={handleDelete}>
+                      {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Ha, hisobni o'chirish
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         </motion.div>
       </motion.div>
     </DashboardLayout>
-  )
+  );
 }

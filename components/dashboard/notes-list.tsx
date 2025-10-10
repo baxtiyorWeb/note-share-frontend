@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -6,29 +6,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-
+import _ from "lodash";
 import { useNotes, useDeleteNote, useShareNote } from "@/hooks/use-note";
 import { useProfileByUsername } from "@/hooks/use-profile";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
-
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-
+import { TooltipProvider, } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw"; // ✅ --- IMPORT THE NEW PLUGIN ---
-
-import { Edit, Trash2, Share2, Search, CheckCircle2, AlertCircle, NotebookPen, Plus, BookOpen, Eye, Heart, MessageCircle, X, MoreHorizontal, Loader2 } from "lucide-react";
-
-// --- INTERFACES ---
+import rehypeRaw from "rehype-raw";
+import { Edit, Trash2, Share2, Search, CheckCircle2, AlertCircle, NotebookPen, Plus, BookOpen, Eye, Heart, MessageCircle, MoreHorizontal, Loader2, ListFilter } from "lucide-react";
 interface Profile {
   id: number;
   firstName?: string;
@@ -64,7 +57,6 @@ const shareSchema = z.object({
 });
 type ShareFormData = z.infer<typeof shareSchema>;
 
-// --- HELPER FUNCTIONS ---
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   useEffect(() => {
@@ -74,11 +66,18 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-const getInitials = (profile?: Profile) => {
+const getInitials = (profile?: Profile): string => {
   if (!profile) return "U";
+
   const name = profile.username || profile.firstName || "User";
-  return name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  return name
+    .split(/\s+/)
+    .map(n => n[0] || "")
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 };
+
 
 const formatRelativeTime = (dateString?: string) => {
   if (!dateString) return "";
@@ -92,205 +91,178 @@ const formatRelativeTime = (dateString?: string) => {
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) return `${diffInHours}h ago`;
   const diffInDays = Math.floor(diffInHours / 24);
-  return diffInDays < 7 ? `${diffInDays}d ago` : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return diffInDays < 7 ? `${diffInDays}d ago` : date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
 const stripHtml = (htmlString: string) => {
   if (!htmlString) return "";
-  const plainText = htmlString.replace(/<[^>]*>/g, ' ');
-  return plainText.replace(/\s\s+/g, ' ').trim();
+  const plainText = htmlString.replace(/<[^>]*>/g, " ");
+  return plainText.replace(/\s\s+/g, " ").trim();
 };
 
-// --- UI COMPONENTS ---
+
+
 const LoadingState = () => (
-  <div className="flex justify-center items-center min-h-[60vh]">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  <div className="flex justify-center mt-32 bg-gray-100 items-center min-h-[60vh]">
+    <Loader2 className="w-12 h-12 text-violet-500 animate-spin" />
   </div>
 );
 
 const EmptyState = () => (
-  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-    <div className="flex flex-col items-center gap-6 p-10 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 w-full max-w-md">
-      <div className="p-4 bg-primary/10 rounded-full">
-        <NotebookPen className="w-12 h-12 text-primary" />
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="flex dark:bg-gray-700/50 mt-32 bg-gray-100 flex-col items-center justify-center min-h-[60vh] text-center px-4"
+  >
+    <div className="flex flex-col items-center gap-6 p-10 rounded-2xl bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 w-full max-w-md">
+      <div className="p-5 bg-gray-200 dark:bg-gray-700/50 rounded-full">
+        <NotebookPen className="w-12 h-12 text-indigo-400 dark:text-indigo-300" />
       </div>
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold text-slate-800">Your Notebook is Empty</h2>
-        <p className="text-slate-500">Let's get started by creating your first note!</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Your Notebook is Empty</h2>
+        <p className="text-gray-600 dark:text-gray-400">Let&apos;s create your first note and bring your ideas to life!</p>
       </div>
-      <Button asChild size="lg" className="w-full">
-        <Link href="/dashboard/new"><Plus className="w-5 h-5 mr-2" /> Create First Note</Link>
+      <Button
+        asChild
+        size="lg"
+        className="w-full bg-indigo-600 text-white dark:bg-indigo-500 dark:hover:bg-indigo-600 hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 dark:shadow-indigo-500/20"
+      >
+        <Link href="/dashboard/new">
+          <Plus className="w-5 h-5 mr-2" /> Create New Note
+        </Link>
       </Button>
     </div>
   </motion.div>
 );
 
-const DashboardStats = ({ stats }: { stats: any }) => (
-  <motion.div initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.1 } } }} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-    {[
-      { title: "Total Notes", value: stats?.totalNotes, icon: BookOpen, color: "text-primary", bg: "bg-primary/5" },
-      { title: "Total Views", value: stats?.totalViews, icon: Eye, color: "text-blue-600", bg: "bg-blue-500/5" },
-      { title: "Total Likes", value: stats?.totalLikes, icon: Heart, color: "text-red-500", bg: "bg-red-500/5" },
-      { title: "Total Comments", value: stats?.totalComments, icon: MessageCircle, color: "text-green-600", bg: "bg-green-500/5" },
-    ].map(item => (
-      <motion.div key={item.title} variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}>
-        <Card className={`overflow-hidden border-border/50 ${item.bg} p-4`}>
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 text-sm">
-              <item.icon className={`w-4 h-4 ${item.color}`} /> {item.title}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${item.color}`}>{item.value ?? 0}</div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    ))}
-  </motion.div>
-);
+const DashboardStats = ({ stats }: { stats: any }) => {
+  const statItems = [
+    { title: "Total Notes", value: stats?.totalNotes, icon: BookOpen, color: "text-violet-400" },
+    { title: "Total Views", value: stats?.totalViews, icon: Eye, color: "text-sky-400" },
+    { title: "Total Likes", value: stats?.totalLikes, icon: Heart, color: "text-rose-400" },
+    { title: "Total Comments", value: stats?.totalComments, icon: MessageCircle, color: "text-amber-400" },
+  ];
+
+  return (
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={{ show: { transition: { staggerChildren: 0.1 } } }}
+      className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6"
+    >
+      {statItems.map((item, index) => (
+        <motion.div key={item.title} variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }} transition={{ delay: index * 0.1 }}>
+          <Card className="bg-slate-800/50 border-slate-700 hover:border-violet-500/50 transition-colors duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-slate-400">{item.title}</CardTitle>
+              <item.icon className={`w-5 h-5 ${item.color}`} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-slate-50">{item.value ?? 0}</div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+};
 
 const NoteCard = ({ note, onView, onDelete, onShare }: NoteCardProps) => {
   return (
     <motion.div
       variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ y: -5 }}
       layout
-      exit={{ opacity: 0, y: 20 }}
-      className="group"
+      exit={{ opacity: 0, y: 20, transition: { duration: 0.2 } }}
+      className="group cursor-pointer"
+      onClick={() => onView(note)}
     >
-      <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-shadow duration-300 border h-full flex flex-col min-h-[200px]">
-        <div className="p-5 flex items-center justify-between gap-4 border-b">
-          <div className="flex items-center gap-3 overflow-hidden flex-1">
-            <Avatar className="h-10 w-10">
+      <Card className="bg-slate-800/80 rounded-lg shadow-lg hover:shadow-violet-500/10 border border-slate-700 hover:border-violet-500/50 transition-all duration-300 h-full flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <Avatar className="h-10 w-10 border-2 border-slate-600">
               <AvatarImage src={note.profile?.avatar} alt={note.profile?.username} />
-              <AvatarFallback>{getInitials(note.profile)}</AvatarFallback>
+              <AvatarFallback className="bg-slate-700 text-slate-300">{getInitials(note.profile)}</AvatarFallback>
             </Avatar>
             <div className="truncate">
-              <p className="font-semibold text-slate-800 truncate">{note.profile?.username || "Anonymous"}</p>
+              <p className="text-sm font-semibold text-slate-200 truncate">{note.profile?.username || "Anonymous"}</p>
               <p className="text-xs text-slate-500">{formatRelativeTime(note.updatedAt)}</p>
             </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-slate-500 flex-shrink-0">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-slate-400 hover:bg-slate-700 hover:text-slate-100" onClick={(e) => e.stopPropagation()}>
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-48 bg-slate-800 border-slate-700 text-slate-200">
               <DropdownMenuItem asChild>
-                <Link href={`/dashboard/edit/${note.id}`} className="flex items-center gap-2 cursor-pointer">
-                  <Edit className="w-4 h-4" /> Edit
+                <Link href={`/dashboard/edit/${note.id}`} className="flex items-center gap-2 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                  <Edit className="w-4 h-4 text-slate-400" /> Edit
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(note.id)} className="flex items-center gap-2 text-red-500 focus:text-red-500 focus:bg-red-50 cursor-pointer">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare(note); }} className="flex items-center gap-2 cursor-pointer">
+                <Share2 className="w-4 h-4 text-slate-400" /> Share
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-slate-700" />
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(note.id); }} className="flex items-center gap-2 text-rose-500 focus:text-rose-400 focus:bg-rose-500/10 cursor-pointer">
                 <Trash2 className="w-4 h-4" /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-        <div className="p-5 flex-1 cursor-pointer overflow-hidden" onClick={() => onView(note)}>
-          <h2 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+        </CardHeader>
+        <CardContent className="flex-1 py-0">
+          <h2 className="text-lg font-bold text-slate-50 group-hover:text-violet-400 transition-colors truncate">
             {note.title}
           </h2>
-          <div className="mt-2 text-slate-600 text-sm leading-relaxed line-clamp-3">
-            {note.content ? (
-              <p>{stripHtml(note.content)}</p>
-            ) : (
-              <p className="italic text-slate-500">No content.</p>
-            )}
+          <div className="mt-2 text-slate-400 text-sm leading-relaxed line-clamp-3">
+            {note.content ? <p>{stripHtml(note.content)}</p> : <p className="italic text-slate-600">No content.</p>}
           </div>
-        </div>
-        <div className="px-5 py-3 border-t flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 text-slate-500">
+        </CardContent>
+        <CardFooter className="pt-4 flex items-center justify-between">
+          <div className="flex items-center gap-4 text-slate-500 text-xs">
             {[
-              { Icon: Heart, value: note.totalLikes, tooltip: "Likes" },
-              { Icon: MessageCircle, value: note.totalComments, tooltip: "Comments" },
-              { Icon: Eye, value: note.totalViews, tooltip: "Views" },
-            ].map(({ Icon, value, tooltip }) => (
-              <Tooltip key={tooltip}>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <Icon className="w-4 h-4" />
-                    <span>{value ?? 0}</span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent><p>{tooltip}</p></TooltipContent>
-              </Tooltip>
+              { Icon: Heart, value: note.totalLikes },
+              { Icon: MessageCircle, value: note.totalComments },
+              { Icon: Eye, value: note.totalViews },
+            ].map(({ Icon, value }, index) => (
+              <div key={index} className="flex items-center gap-1.5">
+                <Icon className="w-4 h-4" />
+                <span>{value ?? 0}</span>
+              </div>
             ))}
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={(e) => { e.stopPropagation(); onShare(note); }} variant="ghost" size="icon" className="h-9 w-9 rounded-full text-slate-500 hover:text-indigo-600">
-                <Share2 className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Share Note</p></TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </motion.div>
   );
 };
 
-const NoteDetailModal = ({ note, isOpen, onOpenChange }: { note: Note | null; isOpen: boolean; onOpenChange: (open: boolean) => void; }) => {
+const NoteDetailModal = ({ note, isOpen, onOpenChange }: { note: Note | null; isOpen: boolean; onOpenChange: (open: boolean) => void }) => {
   if (!note) return null;
-
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange} >
-      <DialogContent style={{ maxWidth: "100%", width: "1000px", height: "90vh" }}
-        className="flex flex-col p-0">
-        <DialogHeader className="p-6 border-b flex-shrink-0 relative">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-12 w-12">
-              <AvatarImage src={note.profile?.avatar} />
-              <AvatarFallback>{getInitials(note.profile)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <DialogTitle className="text-2xl font-bold line-clamp-1">{note.title}</DialogTitle>
-              <DialogDescription className="text-sm mt-1">
-                By <span className="font-medium text-indigo-600">{note.profile?.username || "Anonymous"}</span> • {formatRelativeTime(note.updatedAt)}
-              </DialogDescription>
-            </div>
-          </div>
-
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl w-full h-[90vh] bg-slate-900 border-slate-700 text-slate-50 rounded-lg shadow-2xl p-0 flex flex-col">
+        <DialogHeader className="p-6 border-b border-slate-800">
+          <DialogTitle className="text-3xl font-bold text-slate-50 line-clamp-2">{note.title}</DialogTitle>
+          <DialogDescription className="text-slate-400 mt-1">
+            By <span className="font-medium text-violet-400">{note.profile?.username || "Anonymous"}</span> • Last updated {formatRelativeTime(note.updatedAt)}
+          </DialogDescription>
         </DialogHeader>
-
-        <div className="flex-1 grid md:grid-cols-3 overflow-hidden">
-          <div className="md:col-span-2 overflow-y-auto p-6">
-            {/* ✅ --- FIX: USE rehypeRaw TO RENDER HTML TAGS --- */}
-            <div className="prose prose-slate max-w-none">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]} // <-- ADD THIS LINE
-              >
-                {note.content || "*No content provided.*"}
-              </ReactMarkdown>
-            </div>
-          </div>
-
-          <div className="md:col-span-1 border-t md:border-t-0 md:border-l flex flex-col bg-slate-50">
-            <Tabs defaultValue="comments" className="flex flex-col w-full h-full">
-              <TabsList className="grid w-full grid-cols-3 rounded-none border-b">
-                <TabsTrigger value="comments"><MessageCircle className="w-4 h-4 mr-1.5" /> {note.totalComments ?? 0}</TabsTrigger>
-                <TabsTrigger value="likes"><Heart className="w-4 h-4 mr-1.5" /> {note.totalLikes ?? 0}</TabsTrigger>
-                <TabsTrigger value="views"><Eye className="w-4 h-4 mr-1.5" /> {note.totalViews ?? 0}</TabsTrigger>
-              </TabsList>
-              <div className="flex-1 p-4 overflow-y-auto">
-                <TabsContent value="comments"><p className="text-center text-sm text-slate-500 py-4">No comments yet.</p></TabsContent>
-                <TabsContent value="likes"><p className="text-center text-sm text-slate-500 py-4">No likes yet.</p></TabsContent>
-                <TabsContent value="views"><p className="text-center text-sm text-slate-500 py-4">No views yet.</p></TabsContent>
-              </div>
-            </Tabs>
-          </div>
+        <div className="flex-1 overflow-y-auto p-8 prose prose-invert max-w-none prose-p:text-slate-300 prose-headings:text-slate-50 prose-a:text-violet-400 prose-strong:text-slate-200 prose-code:text-rose-400 prose-blockquote:border-violet-500">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+            {note.content || "*No content provided.*"}
+          </ReactMarkdown>
         </div>
       </DialogContent>
     </Dialog>
   );
 };
 
+
 const ShareNoteDialog = ({ note, isOpen, onOpenChange }: { note: Note | null; isOpen: boolean; onOpenChange: (open: boolean) => void }) => {
   const shareMutation = useShareNote();
-  const { register, handleSubmit, reset, watch } = useForm<ShareFormData>({ resolver: zodResolver(shareSchema) });
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ShareFormData>({ resolver: zodResolver(shareSchema) });
   const watchedUsername = watch("username");
   const debouncedSearchTerm = useDebounce(watchedUsername || "", 500);
   const { data: targetProfile, isFetching: isFetchingProfile } = useProfileByUsername(debouncedSearchTerm);
@@ -308,60 +280,102 @@ const ShareNoteDialog = ({ note, isOpen, onOpenChange }: { note: Note | null; is
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) reset(); onOpenChange(open); }}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Share "{note.title}"</DialogTitle><DialogDescription>Share this note with another user.</DialogDescription></DialogHeader>
+      <DialogContent className="max-w-md bg-slate-900 border-slate-700 text-slate-50 rounded-lg shadow-xl">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Share Note</DialogTitle>
+          <DialogDescription className="text-slate-400">Share "{note.title}" with another user.</DialogDescription>
+        </DialogHeader>
         <form onSubmit={handleSubmit(onShareSubmit)} className="space-y-4 pt-4">
           <div>
-            <Label htmlFor="username">Username</Label>
-            <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input id="username" placeholder="Start typing..." className="pl-10" {...register("username")} /></div>
+            <Label htmlFor="username" className="text-slate-300 mb-2 block">Username</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+              <Input
+                id="username"
+                placeholder="e.g., john.doe"
+                className="pl-10 bg-slate-800 border-slate-600 focus:border-violet-500 focus:ring-violet-500"
+                {...register("username")}
+              />
+            </div>
+            {errors.username && <p className="text-sm text-rose-500 mt-2">{errors.username.message}</p>}
           </div>
-          {isFetchingProfile && <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Searching...</div>}
-          {userNotFound && <div className="text-sm text-destructive flex items-center gap-2"><AlertCircle className="w-4 h-4" />User not found.</div>}
-          {targetProfile && <div className="p-3 bg-green-500/10 border rounded-lg flex items-center gap-3"><Avatar className="h-8 w-8"><AvatarImage src={targetProfile.avatar} /><AvatarFallback>{getInitials(targetProfile)}</AvatarFallback></Avatar><p className="font-medium">{targetProfile.username}</p><CheckCircle2 className="w-5 h-5 text-green-500 ml-auto" /></div>}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={isShareDisabled}>{shareMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Sharing...</> : <><Share2 className="w-4 h-4 mr-2" />Share Note</>}</Button>
+          <div className="min-h-[60px]">
+            {isFetchingProfile && (
+              <div className="text-sm text-slate-400 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Searching...</div>
+            )}
+            {userNotFound && (
+              <div className="text-sm text-rose-500 flex items-center gap-2"><AlertCircle className="w-4 h-4" /> User not found.</div>
+            )}
+            {targetProfile && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-3 bg-slate-800 border border-slate-700 rounded-md flex items-center gap-3">
+                <Avatar className="h-9 w-9">
+                  <AvatarImage src={targetProfile.avatar} />
+                  <AvatarFallback className="bg-slate-700 text-slate-300">{getInitials(targetProfile)}</AvatarFallback>
+                </Avatar>
+                <p className="font-medium text-slate-200">{targetProfile.username}</p>
+                <CheckCircle2 className="w-5 h-5 text-green-500 ml-auto" />
+              </motion.div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-slate-100">Cancel</Button>
+            <Button type="submit" disabled={isShareDisabled} className="bg-violet-600 text-white hover:bg-violet-600/90 disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed">
+              {shareMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Sharing...</> : <><Share2 className="w-4 h-4 mr-2" /> Share Note</>}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
-}
+};
 
-// --- MAIN PAGE COMPONENT ---
+
 export default function NotesListPage() {
   const { data: notes, isLoading: isNotesLoading } = useNotes();
-  const { data: stats } = useDashboardStats();
+  const { data: stats, isLoading: isStatsLoading } = useDashboardStats();
   const deleteMutation = useDeleteNote();
 
   const [noteForView, setNoteForView] = useState<Note | null>(null);
   const [noteForShare, setNoteForShare] = useState<Note | null>(null);
 
-  const handleDeleteNote = (id: number) => deleteMutation.mutate(id);
+  const handleDeleteNote = (id: number) => {
+    deleteMutation.mutate(id);
+  };
 
-  if (isNotesLoading) return <LoadingState />;
-  if (!notes || notes.length === 0) return <EmptyState />;
+  if (isNotesLoading) {
+    return <div className="bg-slate-900"><LoadingState /></div>;
+  }
+
+  if (!notes || notes.length === 0) {
+    return <div className="bg-slate-900"><EmptyState /></div>;
+  }
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="space-y-8 bg-slate-50 h-screen overflow-y-auto p-8">
-        <header className="flex items-center gap-4">
-          <div className="p-3 rounded-full bg-primary/10">
-            <BookOpen className="w-7 h-7 text-primary" />
-          </div>
+      <div className="min-h-screen bg-slate-900 text-slate-50 p-6 sm:p-8 md:p-10 space-y-8">
+        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">My Notes</h1>
-            <p className="text-base text-slate-500">{notes.length} note{notes.length !== 1 ? 's' : ''} in your collection</p>
+            <h1 className="text-4xl font-bold text-slate-50">My Notes</h1>
+            <p className="text-slate-400 mt-1">{notes.length} note{notes.length !== 1 ? "s" : ""} in your collection</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+              <Input placeholder="Search notes..." className="pl-10 w-full sm:w-64 bg-slate-800 border-slate-700 focus:border-violet-500" />
+            </div>
+            <Button asChild className="bg-violet-600 text-white hover:bg-violet-600/90">
+              <Link href="/dashboard/new"><Plus className="w-4 h-4 mr-2" /> New Note</Link>
+            </Button>
           </div>
         </header>
 
-        <DashboardStats stats={stats} />
+        {isStatsLoading ? <div className="w-full h-24 flex justify-center items-center"><Loader2 className="animate-spin text-violet-500" /></div> : <DashboardStats stats={stats} />}
 
         <motion.div
-          variants={{ show: { transition: { staggerChildren: 0.07 } } }}
+          variants={{ show: { transition: { staggerChildren: 0.05 } } }}
           initial="hidden"
           animate="show"
-          className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
         >
           <AnimatePresence>
             {notes.map((note) => (

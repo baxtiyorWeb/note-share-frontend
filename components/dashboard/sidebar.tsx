@@ -2,48 +2,25 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BookOpen, FileText, Plus, Share2, Settings, LogOut } from "lucide-react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { BookOpen, FileText, Plus, Share2, Settings, LogOut, Loader2 } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useMyProfile } from "@/hooks/use-profile"
 import { logout } from "@/services/auth-service"
-import { Loader2 } from "lucide-react"
-import { motion } from "framer-motion"
 import { useState } from "react"
-
+import { motion } from "framer-motion"
 const menuItems = [
   { icon: FileText, label: "My Notes", href: "/dashboard" },
   { icon: Plus, label: "New Note", href: "/dashboard/new" },
   { icon: Share2, label: "Shared with Me", href: "/dashboard/shared" },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
-]
+];
+const settingsMenuItem = { icon: Settings, label: "Settings", href: "/dashboard/settings" };
+const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.3 } } };
+const profileVariants = { hidden: { opacity: 0, y: -10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3, delay: 0.1 } } };
+const navVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.07, delayChildren: 0.2 } } };
+const itemVariants = { hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } };
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.5 } }
-}
-
-const profileVariants = {
-  hidden: { opacity: 0, y: -10 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
-}
-
-const navVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2
-    }
-  }
-}
-
-const itemVariants = {
-  hidden: { opacity: 0, x: -20 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.3 } }
-}
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -54,113 +31,62 @@ export function Sidebar() {
   const handleLogout = async () => {
     setIsLoggingOut(true)
     logout()
-    await new Promise(resolve => setTimeout(resolve, 500)) // Small delay for UX
+    await new Promise(resolve => setTimeout(resolve, 500))
     router.push('/login')
   }
 
-  const getInitials = (name?: string) => {
-    if (!name) return "U"
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const getInitials = (name?: string, email?: string) => {
+    if (name) {
+      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    }
+    if (email) {
+      return email.substring(0, 2).toUpperCase()
+    }
+    return "U"
   }
 
   const displayName = user?.profile?.username || user?.email?.split('@')[0] || "User"
-  const initials = getInitials(displayName)
+  const initials = getInitials(user?.profile?.username, user?.email)
 
   return (
     <motion.aside
-      className="w-64 border-r-2 border-primary/10 bg-gradient-to-b from-background via-primary/5 to-accent/5 h-screen flex flex-col"
+      className="hidden lg:flex w-64 h-screen flex-col fixed inset-y-0 z-50 bg-slate-100 border-r border-slate-200 dark:bg-slate-950 dark:border-slate-800"
       variants={containerVariants}
-      initial={false}
+      initial="hidden"
       animate="visible"
     >
-      {/* Logo */}
-      <motion.div
-        className="p-6 border-b border-primary/10"
-        whileHover={{ scale: 1.02 }}
-        transition={{ duration: 0.2 }}
-      >
-        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity group">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-accent">
-            <BookOpen className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-bold text-xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            NoteShare
-          </span>
+      <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+        <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+          <BookOpen className="w-6 h-6 text-violet-500 dark:text-violet-400" />
+          <span className="font-bold text-lg text-slate-900 dark:text-slate-50">NoteShare</span>
         </Link>
-      </motion.div>
+      </div>
 
-      {/* Profile */}
-      <motion.div
-        className="p-6 border-b border-primary/10"
-        variants={profileVariants}
-      >
+      <motion.div className="p-4" variants={profileVariants}>
         {isLoading ? (
-          <div className="flex items-center gap-3 animate-pulse">
-            <div className="w-10 h-10 bg-muted rounded-full" />
-            <div className="flex-1 space-y-1">
-              <div className="h-4 bg-muted rounded w-32" />
-              <div className="h-3 bg-muted rounded w-24" />
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-200/60 dark:bg-slate-800/50 animate-pulse">
+            <div className="w-10 h-10 bg-slate-300 dark:bg-slate-700 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-slate-300 dark:bg-slate-700 rounded w-3/4" />
+              <div className="h-3 bg-slate-300 dark:bg-slate-700 rounded w-1/2" />
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-3 group">
-            {/* Profile */}
-            <motion.div
-              className="px-3 border-b border-primary/10"
-              variants={profileVariants}
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-3 animate-pulse">
-                  <div className="w-10 h-10 bg-muted rounded-full" />
-                  <div className="flex-1 space-y-1">
-                    <div className="h-4 bg-muted rounded w-32" />
-                    <div className="h-3 bg-muted rounded w-24" />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 group">
-                  <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.2 }}>
-                    <Avatar className="ring-2 ring-primary/20 hover:ring-primary/40 transition-all duration-300">
-                      {user?.profile?.avatar ? (
-                        <img
-                          src={user.profile.avatar}
-                          alt={displayName}
-                          className="object-cover w-full h-full"
-                        />
-                      ) : (
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
-                          {initials}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                  </motion.div>
-                  <motion.div
-                    className="flex-1 min-w-0 group-hover:opacity-80 transition-opacity"
-                    whileHover={{ x: 2 }}
-                  >
-                    <p className="font-semibold truncate">{displayName}</p>
-                    <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
-                  </motion.div>
-                </div>
-              )}
-            </motion.div>
-
-            <motion.div
-              className="flex-1 min-w-0 group-hover:opacity-80 transition-opacity"
-              whileHover={{ x: 2 }}
-            >
-              <p className="font-semibold truncate">{displayName}</p>
-              <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
-            </motion.div>
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-200/60 dark:bg-slate-800/50">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={user?.profile?.avatar} alt={displayName} />
+              <AvatarFallback className="bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-300 font-semibold">{initials}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm truncate text-slate-800 dark:text-slate-200">{displayName}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
+            </div>
           </div>
         )}
       </motion.div>
 
       {/* Navigation */}
-      <motion.nav
-        className="flex-1 p-4 space-y-2"
-        variants={navVariants}
-      >
+      <motion.nav className="flex-1 px-4 py-2 space-y-1" variants={navVariants}>
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
@@ -169,16 +95,14 @@ export function Sidebar() {
               <Link
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors relative",
                   isActive
-                    ? "bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/25"
-                    : "hover:bg-primary/10 text-foreground hover:translate-x-1",
+                    ? "bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300"
+                    : "text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100",
                 )}
-                style={{ originX: 0 }}
               >
-                <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.2 }}>
-                  <Icon className="w-5 h-5" />
-                </motion.div>
+                {isActive && <motion.div layoutId="active-pill" className="absolute left-0 top-2 bottom-2 w-1 bg-violet-500 dark:bg-violet-400 rounded-r-full"></motion.div>}
+                <Icon className="w-5 h-5" />
                 <span>{item.label}</span>
               </Link>
             </motion.div>
@@ -186,27 +110,42 @@ export function Sidebar() {
         })}
       </motion.nav>
 
-      {/* Logout */}
-      <motion.div
-        className="p-4 border-t border-primary/10"
-        whileHover={{ scale: 1.01 }}
-        transition={{ duration: 0.1 }}
-      >
+      <motion.div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+        {(() => {
+          const Icon = settingsMenuItem.icon;
+          const isActive = pathname === settingsMenuItem.href;
+          return (
+            <Link
+              href={settingsMenuItem.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors w-full",
+                isActive
+                  ? "bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300"
+                  : "text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100",
+              )}
+            >
+              {isActive && <motion.div layoutId="active-pill" className="absolute left-0 top-2 bottom-2 w-1 bg-violet-500 dark:bg-violet-400 rounded-r-full"></motion.div>}
+              <Icon className="w-5 h-5" />
+              <span>{settingsMenuItem.label}</span>
+            </Link>
+          )
+        })()}
+
         <Button
           variant="ghost"
-          className="w-full justify-start gap-3 hover:bg-destructive/10 hover:text-destructive transition-all duration-300 ease-in-out"
+          className="w-full justify-start gap-3 text-slate-600 hover:bg-red-100 hover:text-red-700 dark:text-slate-400 dark:hover:bg-rose-500/10 dark:hover:text-rose-400 transition-colors px-3 py-2.5 h-auto text-sm font-medium"
           onClick={handleLogout}
           disabled={isLoggingOut}
         >
           {isLoggingOut ? (
-            <span className="flex items-center justify-start">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              <span>Logging out...</span>
-            </span>
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Chiqilmoqda...</span>
+            </>
           ) : (
             <>
               <LogOut className="w-5 h-5" />
-              <span>Logout</span>
+              <span>Chiqish</span>
             </>
           )}
         </Button>

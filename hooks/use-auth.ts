@@ -1,4 +1,3 @@
-// src/hooks/useAuth.ts
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { login, register } from '@/services/auth-service';
 import { LoginData, RegisterData, AuthResponse } from '@/services/auth-service';
