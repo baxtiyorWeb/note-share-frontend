@@ -4,7 +4,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BookOpen, FileText, Plus, Share2, Settings, LogOut, Loader2 } from "lucide-react"
+import { BookOpen, FileText, Plus, Share2, Settings, LogOut, Loader2, Globe } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -14,6 +14,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 
 const menuItems = [
+  { icon: Globe, label: "Explore", href: "/dashboard/explore" },
   { icon: FileText, label: "My Notes", href: "/dashboard" },
   { icon: Plus, label: "New Note", href: "/dashboard/new" },
   { icon: Share2, label: "Shared with Me", href: "/dashboard/shared" },

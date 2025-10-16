@@ -9,15 +9,18 @@ export interface Note {
   updatedAt: string;
   views: NoteView[];
   likes: NoteLike[];
+  isPublic: boolean;
   comments: NoteComment[];
   totalViews?: number;
   totalLikes?: number;
   totalComments?: number;
   profile: Profile;
+  createdAt: string;
 }
 export interface CreateNoteData {
   title: string;
   content: string;
+  isPublic: boolean;
 }
 
 export interface UpdateNoteData {
@@ -33,6 +36,11 @@ export const createNote = async (data: CreateNoteData): Promise<Note> => {
 export const getAllNotes = async (): Promise<Note[]> => {
   const response = await api.get('/notes');
   return response.data;
+};
+
+export const getExploreNotes = async (params: Record<string, any>) => {
+  const res = await api.get("/notes/explore", { params });
+  return res.data;
 };
 
 export const getSharedWithMeNotes = async (): Promise<Note[]> => {

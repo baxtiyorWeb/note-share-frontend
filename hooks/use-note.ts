@@ -25,6 +25,8 @@ export const useNote = (id: number): UseQueryResult<Note, Error> => {
     enabled: !!id,
   });
 };
+
+
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const useUploadImage = () => {
   const [isPending, setIsPending] = useState(false);
@@ -57,12 +59,14 @@ export const useCreateNote = (): UseMutationResult<Note, Error, CreateNoteData> 
           id: Date.now(),
           title: newNote.title,
           content: newNote.content,
+          isPublic: newNote.isPublic,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           profile: {} as any,
           views: {} as any,
           likes: {} as any,
           comments: [] as any,
+
         },
         ...old,
       ]);

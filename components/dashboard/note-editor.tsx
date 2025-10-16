@@ -43,7 +43,7 @@ import {
   ArrowLeft, Save, Loader2, Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading1, Heading2, Heading3, Pilcrow, List, ListOrdered, ImageIcon, Quote,
   Minus, Maximize, Minimize, BookOpen, Crop, AlignLeft, AlignCenter, AlignRight, Share2, Search,
-  AlertTriangle, CheckCircle, Link2, Code2, Palette, Grid
+  AlertTriangle, CheckCircle, Link2, Code2, Palette, Grid, Menu
 } from "lucide-react";
 
 const noteSchema = z.object({ title: z.string().min(1, "Sarlavha kiritilishi shart") });
@@ -150,7 +150,7 @@ const CropModal = ({ isOpen, onClose, imageSrc, onConfirm }: any) => {
   }, []);
 
   const getCroppedImg = useCallback(async (imageSrc: string, pixelCrop: Area) => {
-    const image = new (globalThis as any).Image() as HTMLImageElement; // or window.Image
+    const image = new (globalThis as any).Image() as HTMLImageElement;
     image.src = imageSrc;
     await new Promise((resolve, reject) => {
       image.onload = () => resolve(true);
@@ -178,7 +178,6 @@ const CropModal = ({ isOpen, onClose, imageSrc, onConfirm }: any) => {
     return canvas.toDataURL('image/jpeg');
   }, []);
 
-
   const handleConfirm = async () => {
     if (!imageSrc || !croppedAreaPixels) return;
     try {
@@ -192,12 +191,12 @@ const CropModal = ({ isOpen, onClose, imageSrc, onConfirm }: any) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50">
-        <DialogHeader><DialogTitle>Rasmni kesish va o&apos;lchamini o&apos;zgartirish</DialogTitle></DialogHeader>
-        <div className="relative h-96 w-full bg-gray-100 dark:bg-gray-800 rounded-md">
+      <DialogContent className="max-w-md sm:max-w-lg md:max-w-2xl bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50">
+        <DialogHeader><DialogTitle>Rasmni kesish va o'lchamini o'zgartirish</DialogTitle></DialogHeader>
+        <div className="relative h-64 sm:h-80 md:h-96 w-full bg-gray-100 dark:bg-gray-800 rounded-md">
           {imageSrc && <Cropper image={imageSrc} crop={crop} zoom={zoom} aspect={4 / 3} onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={onCropComplete} />}
         </div>
-        <div className="grid grid-cols-2 gap-4 pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
           <div>
             <Label className="text-gray-700 dark:text-gray-300">Kattalashtirish</Label>
             <input
@@ -211,21 +210,21 @@ const CropModal = ({ isOpen, onClose, imageSrc, onConfirm }: any) => {
             />
           </div>
           <div>
-            <Label className="text-gray-700 dark:text-gray-300">Rasm o&apos;lchami</Label>
+            <Label className="text-gray-700 dark:text-gray-300">Rasm o'lchami</Label>
             <Select value={imageSize} onValueChange={setImageSize}>
               <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"><SelectValue /></SelectTrigger>
               <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50">
                 <SelectItem value="small">Kichik (200px)</SelectItem>
-                <SelectItem value="medium">O&apos;rta (500px)</SelectItem>
+                <SelectItem value="medium">O'rta (500px)</SelectItem>
                 <SelectItem value="large">Katta (800px)</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">Bekor qilish</Button>
-          <Button onClick={handleConfirm} className="bg-gray-900 text-white dark:bg-indigo-600 dark:text-white dark:hover:bg-indigo-500">
-            <Crop className="mr-2 h-4 w-4" /> Rasmni qo&apos;yish
+        <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+          <Button variant="outline" onClick={onClose} className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 w-full sm:w-auto">Bekor qilish</Button>
+          <Button onClick={handleConfirm} className="bg-gray-900 text-white dark:bg-indigo-600 dark:text-white dark:hover:bg-indigo-500 w-full sm:w-auto">
+            <Crop className="mr-2 h-4 w-4" /> Rasmni qo'yish
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -243,9 +242,9 @@ const LinkModal = ({ isOpen, onClose, onConfirm, initialUrl }: { isOpen: boolean
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50">
+      <DialogContent className="max-w-xs sm:max-w-md bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50">
         <DialogHeader>
-          <DialogTitle>Havola q&apos;shish</DialogTitle>
+          <DialogTitle>Havola qo'shish</DialogTitle>
           <DialogDescription>Havola URL manzilini kiriting.</DialogDescription>
         </DialogHeader>
         <div className="pt-4">
@@ -257,10 +256,10 @@ const LinkModal = ({ isOpen, onClose, onConfirm, initialUrl }: { isOpen: boolean
             className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:border-indigo-500"
           />
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">Bekor qilish</Button>
-          <Button onClick={handleSubmit} className="bg-gray-900 text-white dark:bg-indigo-600 dark:text-white dark:hover:bg-indigo-500">
-            <Link2 className="mr-2 h-4 w-4" /> Qo&apos;shish
+        <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+          <Button variant="outline" onClick={onClose} className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 w-full sm:w-auto">Bekor qilish</Button>
+          <Button onClick={handleSubmit} className="bg-gray-900 text-white dark:bg-indigo-600 dark:text-white dark:hover:bg-indigo-500 w-full sm:w-auto">
+            <Link2 className="mr-2 h-4 w-4" /> Qo'shish
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -291,9 +290,9 @@ const ShareModal = ({ noteId, isOpen, onClose }: any) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) reset(); onClose(); }}>
-      <DialogContent className="max-w-md bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50">
+      <DialogContent className="max-w-xs sm:max-w-md bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Eslatmani ulashish</DialogTitle>
+          <DialogTitle className="text-xl sm:text-2xl font-bold">Eslatmani ulashish</DialogTitle>
           <DialogDescription className="text-gray-500 dark:text-gray-400">Bu eslatmani boshqa foydalanuvchi bilan ulashing.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onShareSubmit)} className="space-y-4 pt-4">
@@ -336,19 +335,19 @@ const ShareModal = ({ noteId, isOpen, onClose }: any) => {
               </motion.div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 w-full sm:w-auto"
             >
               Bekor qilish
             </Button>
             <Button
               type="submit"
               disabled={!targetProfile || shareMutation.isPending}
-              className="bg-gray-900 text-white dark:bg-indigo-600 dark:text-white dark:hover:bg-indigo-500 disabled:bg-gray-300 dark:disabled:bg-gray-700"
+              className="bg-gray-900 text-white dark:bg-indigo-600 dark:text-white dark:hover:bg-indigo-500 disabled:bg-gray-300 dark:disabled:bg-gray-700 w-full sm:w-auto"
             >
               {shareMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Share2 className="w-4 h-4 mr-2" />}
               Ulashish
@@ -368,6 +367,7 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [isToolbarExpanded, setIsToolbarExpanded] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
   const { data: note, isLoading: isNoteLoading } = useNote(isEdit ? parseInt(noteId) : 0);
@@ -383,7 +383,6 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
         src: { default: null },
         alt: { default: null },
         title: { default: null },
-
         width: {
           default: null,
           parseHTML: (element) => element.getAttribute('width') || element.getAttribute('data-width'),
@@ -468,7 +467,6 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
     });
   };
 
-
   const handleImageFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -478,7 +476,6 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
     }
     event.target.value = '';
   };
-
 
   const handleInsertCroppedImage = (croppedImage: string, size: 'small' | 'medium' | 'large') => {
     const width = size === 'small' ? 200 : size === 'large' ? 800 : 500;
@@ -495,6 +492,14 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
       .run();
   };
 
+  const handleTemplateInsert = (content: string) => {
+    if (editor) {
+      editor.chain().focus().insertContent(content).run();
+    } else {
+      toast.error("Editor hali tayyor emas.");
+    }
+  };
+
   if (isNoteLoading && isEdit) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -504,7 +509,7 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
   }
   return (
     <TooltipProvider>
-      <div className={cn("bg-gray-50 dark:bg-gray-900 min-h-screen", isFocusMode && 'p-4 md:p-8')}>
+      <div className={cn("bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col", isFocusMode && 'p-2 sm:p-4 md:p-8  w-full')}>
         <motion.header
           initial={{ y: -60 }}
           animate={{ y: 0 }}
@@ -513,8 +518,8 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
             isFocusMode && 'opacity-0 -mb-16 pointer-events-none'
           )}
         >
-          <div className="container mx-auto px-4 flex items-center justify-between h-16">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className=" flex flex-col sm:flex-row items-start sm:items-center justify-between h-auto sm:h-16 py-2 sm:py-0 gap-2 sm:gap-0">
+            <div className="flex items-center gap-2 flex-1 min-w-0 w-full sm:w-auto">
               <Button variant="ghost" size="icon" asChild>
                 <NextLink href="/dashboard">
                   <ArrowLeft className="w-5 h-5 text-gray-500 dark:text-gray-400" />
@@ -523,10 +528,10 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
               <Input
                 placeholder="Sarlavha..."
                 {...register("title")}
-                className="text-xl font-bold border-none shadow-none focus-visible:ring-0 !ring-offset-0 flex-1 bg-transparent text-gray-900 dark:text-gray-50 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="text-lg sm:text-xl font-bold border-none shadow-none focus-visible:ring-0 !ring-offset-0 flex-1 bg-transparent text-gray-900 dark:text-gray-50 placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               {isEdit && (
                 <Button
                   variant="outline"
@@ -558,13 +563,13 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
           )}
         </motion.header>
 
-        <main className="py-8">
+        <main className="py-4 sm:py-8 flex-grow flex flex-col">
           <motion.div
             layout
             transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
             className={cn(
-              "bg-white dark:bg-gray-900 rounded-xl shadow-lg dark:shadow-2xl dark:shadow-black/20 border border-gray-200 dark:border-gray-800 max-w-4xl mx-auto",
-              isFocusMode && 'max-w-full mt-10 border-gray-200 dark:border-gray-700'
+              "bg-white dark:bg-gray-900 rounded-xl shadow-lg dark:shadow-2xl dark:shadow-black/20 border border-gray-200 dark:border-gray-800 max-w-4xl mx-auto flex-grow flex flex-col",
+              isFocusMode && 'w-full mt-10 border-gray-200 dark:border-gray-700'
             )}
           >
             {editor && (
@@ -572,7 +577,7 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
                 <BubbleMenu
                   editor={editor}
                   tippyOptions={{ duration: 100 }}
-                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl flex items-center gap-1 p-1"
+                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl flex items-center gap-1 p-1 overflow-x-auto"
                 >
                   <ToolbarButton title="Bold" isActive={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
                     <Bold size={16} />
@@ -584,14 +589,9 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
                     <Link2 size={16} />
                   </ToolbarButton>
                 </BubbleMenu>
-                <div className="p-2 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between flex-wrap gap-2 sticky top-0 bg-white/95 dark:bg-gray-900/90 backdrop-blur-lg z-10 rounded-t-xl">
+                {/* Secondary Toolbar (top) for less used items */}
+                <div className="p-2 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between flex-wrap gap-2 sticky top-0 bg-white/95 dark:bg-gray-900/90 backdrop-blur-lg z-10 rounded-t-xl overflow-x-auto sm:overflow-visible md:flex">
                   <div className="flex items-center gap-1 flex-wrap">
-                    <ToolbarButton title="Bold" isActive={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
-                      <Bold size={16} />
-                    </ToolbarButton>
-                    <ToolbarButton title="Italic" isActive={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
-                      <Italic size={16} />
-                    </ToolbarButton>
                     <ToolbarButton title="Underline" isActive={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}>
                       <UnderlineIcon size={16} />
                     </ToolbarButton>
@@ -600,9 +600,6 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
                     </ToolbarButton>
                     <ToolbarButton title="Code" isActive={editor.isActive('code')} onClick={() => editor.chain().focus().toggleCode().run()}>
                       <Code2 size={16} />
-                    </ToolbarButton>
-                    <ToolbarButton title="Link" isActive={editor.isActive('link')} onClick={() => setIsLinkModalOpen(true)}>
-                      <Link2 size={16} />
                     </ToolbarButton>
                     <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
                     <Popover>
@@ -636,13 +633,6 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
                     <ColorPicker editor={editor} type="color" />
                     <ColorPicker editor={editor} type="highlight" />
                     <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
-                    <ToolbarButton title="Ro'yxat" isActive={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()}>
-                      <List size={16} />
-                    </ToolbarButton>
-                    <ToolbarButton title="Raqamlangan ro'yxat" isActive={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
-                      <ListOrdered size={16} />
-                    </ToolbarButton>
-                    <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
                     <ToolbarButton title="Chapga tekislash" isActive={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()}>
                       <AlignLeft size={16} />
                     </ToolbarButton>
@@ -653,9 +643,6 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
                       <AlignRight size={16} />
                     </ToolbarButton>
                     <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
-                    <ToolbarButton title="Rasm qo'yish" onClick={() => imageFileInputRef.current?.click()}>
-                      <ImageIcon size={16} />
-                    </ToolbarButton>
                     <ToolbarButton title="Jadval qo'shish" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
                       <Grid size={16} />
                     </ToolbarButton>
@@ -669,9 +656,9 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
                   <div className="flex items-center gap-2">
                     <Popover>
                       <PopoverTrigger asChild>
-                        <ToolbarButton title="Andoza qo'yish"><BookOpen size={16} /></ToolbarButton>
+                        <ToolbarButton title="Andoza qo'shish"><BookOpen size={16} /></ToolbarButton>
                       </PopoverTrigger>
-                      <PopoverContent className="w-80 p-2 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50">
+                      <PopoverContent className="w-72 sm:w-80 p-2 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50">
                         <Tabs defaultValue="grammar" className="w-full">
                           <TabsList className="grid w-full grid-cols-3 bg-gray-100 dark:bg-gray-800">
                             <TabsTrigger value="grammar">Grammar</TabsTrigger>
@@ -684,7 +671,7 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
                                 key={i}
                                 variant="ghost"
                                 className="w-full justify-start h-auto text-left"
-                                onClick={() => editor.chain().focus().insertContent(t.content).run()}
+                                onClick={() => handleTemplateInsert(t.content)}
                               >
                                 {t.title}
                               </Button>
@@ -696,7 +683,7 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
                                 key={i}
                                 variant="ghost"
                                 className="w-full justify-start h-auto text-left"
-                                onClick={() => editor.chain().focus().insertContent(t.content).run()}
+                                onClick={() => handleTemplateInsert(t.content)}
                               >
                                 {t.title}
                               </Button>
@@ -719,7 +706,7 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
                                   key={index}
                                   variant="ghost"
                                   className="w-full justify-start h-auto text-left"
-                                  onClick={() => editor.chain().focus().insertContent(template.content).run()}
+                                  onClick={() => handleTemplateInsert(template.content)}
                                 >
                                   {template.title}
                                 </Button>
@@ -733,9 +720,34 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
                     </ToolbarButton>
                   </div>
                 </div>
+                <div className="flex-grow p-2 sm:p-4 md:p-8 min-h-[40vh]"><EditorContent editor={editor} /></div>
+                {/* Primary Toolbar (bottom) for main items */}
+                <div className="p-2 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between flex-wrap gap-2 bg-white/95 dark:bg-gray-900/90 backdrop-blur-lg z-10 rounded-b-xl overflow-x-auto sm:overflow-visible sticky bottom-0 md:hidden">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <ToolbarButton title="Bold" isActive={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
+                      <Bold size={16} />
+                    </ToolbarButton>
+                    <ToolbarButton title="Italic" isActive={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
+                      <Italic size={16} />
+                    </ToolbarButton>
+                    <ToolbarButton title="Link" isActive={editor.isActive('link')} onClick={() => setIsLinkModalOpen(true)}>
+                      <Link2 size={16} />
+                    </ToolbarButton>
+                    <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+                    <ToolbarButton title="Ro'yxat" isActive={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+                      <List size={16} />
+                    </ToolbarButton>
+                    <ToolbarButton title="Raqamlangan ro'yxat" isActive={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+                      <ListOrdered size={16} />
+                    </ToolbarButton>
+                    <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+                    <ToolbarButton title="Rasm qo'yish" onClick={() => imageFileInputRef.current?.click()}>
+                      <ImageIcon size={16} />
+                    </ToolbarButton>
+                  </div>
+                </div>
               </>
             )}
-            <div className="p-4 sm:p-8 min-h-[60vh]"><EditorContent editor={editor} /></div>
           </motion.div>
         </main>
         <input type="file" accept="image/*" ref={imageFileInputRef} onChange={handleImageFileUpload} className="hidden" />
