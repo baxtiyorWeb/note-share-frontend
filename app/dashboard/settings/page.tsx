@@ -120,7 +120,7 @@ export default function SettingsPage() {
 
   const getInitials = (firstName?: string, lastName?: string) => `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase();
 
-  if (isLoading) { /* ... yuklanish holati ... */ }
+  if (isLoading) return <>loading ...</>
 
   return (
     <DashboardLayout>
@@ -144,7 +144,7 @@ export default function SettingsPage() {
                     <div className="absolute top-4 right-4 flex gap-2">
                       <Button type="button" size="sm" variant="outline" onClick={() => coverImageInputRef.current?.click()} disabled={isCoverUploading} className="bg-black/20 hover:bg-black/40 text-white border-white/30 h-8">
                         {isCoverUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
-                        <span className="ml-2 hidden sm:inline">O'zgartirish</span>
+                        <span className="ml-2 hidden sm:inline">O&apos;zgartirish</span>
                       </Button>
                       <input type="file" ref={coverImageInputRef} onChange={handleCoverImageFileChange} accept="image/*" className="hidden" />
                       {coverImagePreview && (
@@ -207,9 +207,9 @@ export default function SettingsPage() {
           <Card className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-500/30">
             <CardHeader>
               <CardTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
-                <Trash2 className="h-5 w-5" /> Xavfli Hudud
+                <Trash2 className="h-5 w-5" /> Danger Zone
               </CardTitle>
-              <CardDescription className="text-slate-500 dark:text-slate-400 pt-1">Bu amalni qaytarib bo'lmaydi. Ehtiyot bo'ling.</CardDescription>
+              <CardDescription className="text-slate-500 dark:text-slate-400 pt-1">This action cannot be undone. Be careful.</CardDescription>
             </CardHeader>
             <CardContent>
               <Dialog>
@@ -218,15 +218,15 @@ export default function SettingsPage() {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
                   <DialogHeader>
-                    <DialogTitle className="text-red-600 dark:text-red-400">Haqiqatan ham ishonchingiz komilmi?</DialogTitle>
+                    <DialogTitle className="text-red-600 dark:text-red-400">Are you really sure?</DialogTitle>
                     <DialogDescription className="text-slate-500 dark:text-slate-400">
-                      Bu amalni qaytarib bo'lmaydi. Bu sizning hisobingizni butunlay o'chirib yuboradi va ma'lumotlaringiz serverlarimizdan olib tashlanadi.
+                      This action cannot be undone. It will permanently delete your account and your data will be removed from our servers.
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter className="gap-2">
-                    <DialogTrigger asChild><Button type="button" variant="outline" className="dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">Bekor qilish</Button></DialogTrigger>
+                    <DialogTrigger asChild><Button type="button" variant="outline" className="dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">Cancel</Button></DialogTrigger>
                     <Button type="button" variant="destructive" disabled={deleteMutation.isPending} onClick={handleDelete}>
-                      {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Ha, hisobni o'chirish
+                      {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Yes, delete account
                     </Button>
                   </DialogFooter>
                 </DialogContent>
