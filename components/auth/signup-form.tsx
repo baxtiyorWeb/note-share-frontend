@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useRegister } from "@/hooks/use-auth";
 
+
+
 const signUpSchema = z.object({
   email: z.string().email("Iltimos, to'g'ri email manzil kiriting"),
   password: z.string().min(6, "Parol kamida 6 belgidan iborat bo'lishi kerak"),

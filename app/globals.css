@@ -215,3 +215,10 @@
 .prose img {
   border-radius: 8px;
 }
+
+input:focus,
+input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: inherit !important;
+}

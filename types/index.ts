@@ -25,7 +25,7 @@ export interface NoteComment {
   id: number;
   text: string;
   createdAt: string;
-  profile: Profile;
+  author: Profile;
 }
 
 export interface Note {

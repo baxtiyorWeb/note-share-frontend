@@ -242,8 +242,8 @@ export default function SharedNotesPage() {
             <Share2 className="w-6 h-6 text-violet-600 dark:text-violet-400" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Men bilan ulashilgan</h1>
-            <p className="text-slate-500 dark:text-slate-400">{sharedNotes?.length || 0} ta eslatma ulashilgan</p>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Shared with me</h1>
+            <p className="text-slate-500 dark:text-slate-400">{sharedNotes?.length || 0} note shared</p>
           </div>
         </motion.div>
 
@@ -284,7 +284,7 @@ transition-colors cursor-pointer rounded-xl sm:rounded-2xl"
                       <span className="flex items-center gap-1.5"><Eye className="w-4 h-4" /> {note.views.length}</span>
                     </div>
                     <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedNote(note); }} className="bg-violet-600 text-white hover:bg-violet-700 dark:bg-violet-600 dark:text-white dark:hover:bg-violet-500">
-                      Ko'rish
+                      view
                     </Button>
                   </CardFooter>
                 </Card>
@@ -294,7 +294,6 @@ transition-colors cursor-pointer rounded-xl sm:rounded-2xl"
         )}
       </div>
 
-      {/* NoteDetail Dialog: Framer Motion va Fullscreen Mobile uchun o'zgartirildi */}
       <AnimatePresence>
         {selectedNote && (
           <Dialog open={!!selectedNote} onOpenChange={handleCloseModal}>
@@ -308,10 +307,8 @@ transition-colors cursor-pointer rounded-xl sm:rounded-2xl"
               <DialogContent
                 className="p-0 sm:max-w-6xl w-full h-full sm:h-[90vh] data-[state=open]:animate-none data-[state=closed]:animate-none pointer-events-auto flex flex-col overflow-hidden" // Mobile: h-full
               >
-                {/* Asosiy Kontent Va Izohlar Bloki */}
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-3 min-h-0 overflow-hidden">
 
-                  {/* Note Kontenti */}
                   <div className={`flex flex-col min-h-0 transition-all duration-300 ${isMobileCommentView ? 'hidden' : 'md:col-span-2'}`}>
                     <DialogHeader className="p-6 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
                       <DialogTitle className="text-2xl font-bold text-slate-900 dark:text-slate-50 line-clamp-2">{selectedNote.title}</DialogTitle>
@@ -347,7 +344,6 @@ transition-colors cursor-pointer rounded-xl sm:rounded-2xl"
                     </div>
                   </div>
 
-                  {/* Izohlar Bo'limi */}
                   <div className={`md:col-span-1 min-h-0 transition-all duration-300 ${isMobileCommentView ? 'flex flex-col w-full' : 'hidden md:flex'}`}>
                     <CommentSection noteId={selectedNote.id} onBack={() => setIsMobileCommentView(false)} />
                   </div>

@@ -12,6 +12,7 @@ export interface LikeResponse {
 
 export interface Comment {
   id: number;
+  noteId: number;
   text: string;
   createdAt: string;
   author: {
@@ -20,6 +21,7 @@ export interface Comment {
     firstName?: string;
     lastName?: string;
     avatar?: string;
+
   };
 }
 

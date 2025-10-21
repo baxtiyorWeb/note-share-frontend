@@ -563,13 +563,13 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
           )}
         </motion.header>
 
-        <main className="py-4 sm:py-8 flex-grow flex flex-col">
+        <main className="py-4 sm:py-8 flex-grow flex flex-col min-w-full ">
           <motion.div
             layout
             transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
             className={cn(
-              "bg-white dark:bg-gray-900 rounded-xl shadow-lg dark:shadow-2xl dark:shadow-black/20 border border-gray-200 dark:border-gray-800 max-w-4xl mx-auto flex-grow flex flex-col",
-              isFocusMode && 'w-full mt-10 border-gray-200 dark:border-gray-700'
+              "bg-white dark:bg-gray-900 w-full  rounded-xl shadow-lg dark:shadow-2xl dark:shadow-black/20 border border-gray-200 dark:border-gray-800 max-w-4xl mx-auto flex-grow flex flex-col",
+              isFocusMode && 'min-w-full mt-10 border-gray-200 dark:border-gray-700'
             )}
           >
             {editor && (

@@ -34,7 +34,7 @@ const FilterTabs = React.memo(({ currentSort, onSortChange }: { currentSort: Sor
             onClick={() => onSortChange(key as SortBy)}
             className={`transition-all duration-200 ${currentSort === key
               ? "bg-violet-600 hover:bg-violet-700 text-white shadow-md"
-              : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+              : "text-slate-600 dark:text-slate-400 hover:bg-violet-400 cursor-pointer dark:hover:bg-slate-700/70"
               }`}
           >
             <Icon className="w-4 h-4 mr-2" />
@@ -43,6 +43,7 @@ const FilterTabs = React.memo(({ currentSort, onSortChange }: { currentSort: Sor
         </motion.div>
       ))}
     </div>
+
   );
 });
 FilterTabs.displayName = "FilterTabs";
@@ -193,10 +194,22 @@ export default function ExplorePage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500 flex-shrink-0" />
               <Input
+                id="search-explore"
                 placeholder="Eslatma nomi, kontenti yoki muallifini qidirish..."
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-9 text-sm md:text-base bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:border-violet-500 focus:ring-violet-500 transition-colors h-10 shadow-lg"
+                className="
+    pl-9
+     border-t-0 border-r-0 border-l-0
+    text-sm md:text-base
+    w-1/3
+    bg-white dark:bg-slate-800
+     dark:border-slate-700
+    h-10 transition-colors
+
+  "
               />
+
+
             </div>
           </motion.div>
 
@@ -319,15 +332,16 @@ export default function ExplorePage() {
                           <Button
                             variant="ghost"
                             onClick={() => handleSortChange(key as SortBy)}
-                            className={`w-full justify-start text-base py-2.5 h-auto ${filters.sortBy === key
+                            className={`w-full justify-start text-base py-2.5 h-auto transition-colors ${filters.sortBy === key
                               ? "bg-violet-500/10 text-violet-600 font-semibold dark:bg-violet-900/30 dark:text-violet-400"
-                              : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
                               }`}
                           >
                             <Icon className="w-5 h-5 mr-3" />
                             {label}
-                            {filters.sortBy === key && <span className="ml-auto">✓</span>}
+                            {filters.sortBy === key && <span className="ml-auto">✓</span>}s
                           </Button>
+
                         </motion.div>
                       ))}
                     </div>
