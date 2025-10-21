@@ -76,7 +76,7 @@ function Navbar() {
 
 
 function HeroSection() {
-  return (
+  return (  return (OhOh  return
     <section className="relative pt-24 pb-32 overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-violet-900/30 rounded-full blur-[200px] z-0 opacity-70" />
 
@@ -110,7 +110,7 @@ function HeroSection() {
             transition={{ duration: 0.6, delay: 0.6, type: "spring", stiffness: 100 }}
             className="mt-10"
           >
-            <Link href="/get-started" className="inline-flex items-center justify-center px-8 py-3 text-lg font-bold rounded-full text-slate-900 bg-violet-500 hover:bg-violet-400 transition-all duration-300 shadow-xl shadow-violet-500/40 transform hover:scale-[1.03]">
+            <Link href="/sign-up" className="inline-flex items-center justify-center px-8 py-3 text-lg font-bold rounded-full text-slate-900 bg-violet-500 hover:bg-violet-400 transition-all duration-300 shadow-xl shadow-violet-500/40 transform hover:scale-[1.03]">
               Get Started
               <Rocket className="ml-3 w-5 h-5" />
             </Link>
