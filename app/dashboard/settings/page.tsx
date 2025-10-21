@@ -4,8 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion } from "framer-motion";
-import { Loader2, Image, Trash2 } from "lucide-react";
+import { motion, Variants } from "framer-motion";
+import { Loader2, Image, Trash2, Pen, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useMyProfile, useUpdateProfile, useDeleteProfile } from "@/hooks/use-profile";
 import { UploadService } from "@/services/upload-service";
+
 const profileSchema = z.object({
   firstName: z.string().min(1, "Ism kiritilishi shart").max(50),
   lastName: z.string().min(1, "Familiya kiritilishi shart").max(50),
@@ -26,8 +27,9 @@ const profileSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
-const containerVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.1 } } };
-const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
+const containerVariants: Variants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.1 } } };
+const itemVariants: Variants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
+const buttonVariants: Variants = { hidden: { scale: 0, opacity: 0 }, visible: { scale: 1, opacity: 1, transition: { type: "spring", stiffness: 200, damping: 10 } } };
 
 export default function SettingsPage() {
   const { data: user, isLoading } = useMyProfile();
@@ -38,6 +40,7 @@ export default function SettingsPage() {
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
+  const [isAvatarHovered, setIsAvatarHovered] = useState(false);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverImageInputRef = useRef<HTMLInputElement>(null);
@@ -90,7 +93,7 @@ export default function SettingsPage() {
       try {
         const formData = new FormData();
         formData.append("file", file);
-        const response = await UploadService.uploadCoverImage(formData); // Buni o'zingizni servisingizga moslang
+        const response = await UploadService.uploadCoverImage(formData);
         form.setValue("coverImage", response.coverImageUrl, { shouldValidate: true });
         toast.success("Muqova rasmi yuklandi");
       } catch (error) {
@@ -126,8 +129,8 @@ export default function SettingsPage() {
     <DashboardLayout>
       <motion.div className="p-6 sm:p-8 md:p-10 space-y-8" variants={containerVariants} initial="hidden" animate="visible">
         <motion.div variants={itemVariants}>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Sozlamalar</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">O'z profilingiz ma'lumotlarini boshqaring</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Settings</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your profile information</p>
         </motion.div>
 
         <motion.div variants={itemVariants}>
@@ -144,7 +147,7 @@ export default function SettingsPage() {
                     <div className="absolute top-4 right-4 flex gap-2">
                       <Button type="button" size="sm" variant="outline" onClick={() => coverImageInputRef.current?.click()} disabled={isCoverUploading} className="bg-black/20 hover:bg-black/40 text-white border-white/30 h-8">
                         {isCoverUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
-                        <span className="ml-2 hidden sm:inline">O&apos;zgartirish</span>
+                        <span className="ml-2 hidden sm:inline">Change</span>
                       </Button>
                       <input type="file" ref={coverImageInputRef} onChange={handleCoverImageFileChange} accept="image/*" className="hidden" />
                       {coverImagePreview && (
@@ -164,14 +167,38 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="relative flex items-center gap-4">
-                      <div className="relative">
-                        <Avatar className="h-24 w-24 ring-4 ring-white dark:ring-slate-900 border-2 border-slate-300 dark:border-slate-600" >
+                      <div className="relative"
+                        onMouseEnter={() => setIsAvatarHovered(true)}
+                        onMouseLeave={() => setIsAvatarHovered(false)}
+                      >
+                        <Avatar className="h-24 w-24 ring-4 ring-white dark:ring-slate-900 border-2 border-slate-300 dark:border-slate-600">
                           <AvatarImage src={avatarPreview || undefined} />
                           <AvatarFallback className="text-2xl bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                             {getInitials(user?.profile?.firstName, user?.profile?.lastName)}
                           </AvatarFallback>
                         </Avatar>
-                        {isAvatarUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full"><Loader2 className="animate-spin text-white" /></div>}
+                        {isAvatarUploading && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
+                            <Loader2 className="animate-spin text-white" />
+                          </div>
+                        )}
+                        <motion.div
+                          variants={buttonVariants}
+                          initial="hidden"
+                          animate={isAvatarHovered && !isAvatarUploading ? "visible" : "hidden"}
+                          className="absolute inset-0 flex items-center justify-center"
+                        >
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => avatarInputRef.current?.click()}
+                            className="bg-black/20 hover:bg-black/40 text-white border-white/30 h-8"
+                          >
+                            <Upload className="h-4 w-4 " />
+                          </Button>
+                        </motion.div>
+                        <input type="file" ref={avatarInputRef} onChange={handleAvatarFileChange} accept="image/*" className="hidden" />
                       </div>
                       <div>
                         <h2 className="text-xl font-bold text-white drop-shadow-md">{user?.profile?.username || "User"}</h2>
@@ -180,20 +207,14 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   <div className="p-6 space-y-6">
-                    <div className="flex justify-center sm:justify-start -mt-20 sm:ml-32">
-                      <Button type="button" size="sm" variant="outline" onClick={() => avatarInputRef.current?.click()} disabled={isAvatarUploading} className="bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-600">
-                        <Image className="h-4 w-4 mr-2" /> Avatar o'zgartirish
-                      </Button>
-                      <input type="file" ref={avatarInputRef} onChange={handleAvatarFileChange} accept="image/*" className="hidden" />
-                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
-                      <FormField control={form.control} name="firstName" render={({ field }) => (<FormItem><FormLabel className="text-slate-700 dark:text-slate-300">Ism</FormLabel><FormControl><Input {...field} className="bg-transparent dark:bg-slate-800 border-slate-300 dark:border-slate-700" /></FormControl><FormMessage /></FormItem>)} />
-                      <FormField control={form.control} name="lastName" render={({ field }) => (<FormItem><FormLabel className="text-slate-700 dark:text-slate-300">Familiya</FormLabel><FormControl><Input {...field} className="bg-transparent dark:bg-slate-800 border-slate-300 dark:border-slate-700" /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="firstName" render={({ field }) => (<FormItem><FormLabel className="text-slate-700 dark:text-slate-300">Name</FormLabel><FormControl><Input {...field} className="bg-transparent dark:bg-slate-800 border-slate-300 dark:border-slate-700" /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="lastName" render={({ field }) => (<FormItem><FormLabel className="text-slate-700 dark:text-slate-300">Surname</FormLabel><FormControl><Input {...field} className="bg-transparent dark:bg-slate-800 border-slate-300 dark:border-slate-700" /></FormControl><FormMessage /></FormItem>)} />
                     </div>
                     <FormField control={form.control} name="username" render={({ field }) => (<FormItem><FormLabel className="text-slate-700 dark:text-slate-300">Username</FormLabel><FormControl><Input {...field} className="bg-transparent dark:bg-slate-800 border-slate-300 dark:border-slate-700" /></FormControl><FormMessage /></FormItem>)} />
 
                     <Button type="submit" className="bg-slate-900 text-white hover:bg-slate-800 dark:bg-violet-600 dark:text-white dark:hover:bg-violet-500" disabled={updateMutation.isPending || isAvatarUploading || isCoverUploading}>
-                      {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Saqlash
+                      {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} save
                     </Button>
                   </div>
                 </CardContent>
@@ -201,7 +222,6 @@ export default function SettingsPage() {
             </form>
           </Form>
         </motion.div>
-
 
         <motion.div variants={itemVariants}>
           <Card className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-500/30">
