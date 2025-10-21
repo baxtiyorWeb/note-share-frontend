@@ -545,14 +545,14 @@ export function NoteEditor({ noteId }: { noteId?: string }) {
               <Button
                 onClick={handleSubmit(handleSave)}
                 disabled={createMutation.isPending || updateMutation.isPending}
-                className="bg-gray-900 text-white hover:bg-gray-800 dark:bg-indigo-600 dark:text-white dark:hover:bg-indigo-500"
+                className="bg-gray-900 text-white mr-20 cursor-pointer hover:bg-gray-800 dark:bg-indigo-600 dark:text-white dark:hover:bg-indigo-500"
               >
                 {createMutation.isPending || updateMutation.isPending ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
                   <Save className="w-4 h-4 mr-2" />
                 )}
-                <span>Saqlash</span>
+                <span>Save</span>
               </Button>
             </div>
           </div>

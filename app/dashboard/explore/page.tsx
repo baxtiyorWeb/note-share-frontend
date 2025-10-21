@@ -191,26 +191,27 @@ export default function ExplorePage() {
 
         <div className="flex flex-col gap-3 md:gap-4">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="w-full">
-            <div className="relative">
+            <div className="relative w-full sm:w-2/3 md:w-1/2 lg:w-1/3">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500 flex-shrink-0" />
               <Input
                 id="search-explore"
                 placeholder="Eslatma nomi, kontenti yoki muallifini qidirish..."
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="
-    pl-9
-     border-t-0 border-r-0 border-l-0
-    text-sm md:text-base
-    w-1/3
-    bg-white dark:bg-slate-800
-     dark:border-slate-700
-    h-10 transition-colors
-
-  "
+      pl-9
+      w-full
+      h-10
+      text-sm md:text-base
+      bg-white dark:bg-slate-800
+      border-t-0 border-r-0 border-l-0 dark:border-slate-700
+      focus:ring-0 focus:border-violet-500/60
+      placeholder:text-slate-400
+      rounded-none
+      transition-all duration-300
+    "
               />
-
-
             </div>
+
           </motion.div>
 
           <div className="flex gap-2 items-center justify-between">

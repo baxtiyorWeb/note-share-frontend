@@ -46,9 +46,9 @@ export const MinimalNoteCard: React.FC<MinimalNoteCardProps> = ({
 }) => {
   const author = note.profile;
   const isLiked = note.likes?.some((like) => like.profile?.id === currentProfileId) ?? false;
-  const likesCount = note.totalLikes ?? note.likes?.length ?? 0;
-  const commentsCount = note.totalComments ?? note.comments?.length ?? 0;
-  const viewsCount = note.views?.length ?? 0;
+  const likesCount = note.likesCount ?? note.likes?.length ?? 0;
+  const commentsCount = note.commentsCount ?? note.comments?.length ?? 0;
+  const viewsCount = note.viewsCount ?? 0;
 
 
   const renderAuthorInfo = () => (

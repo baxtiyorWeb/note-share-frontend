@@ -11,9 +11,9 @@ export interface Note {
   likes: NoteLike[];
   isPublic: boolean;
   comments: NoteComment[];
-  totalViews?: number;
-  totalLikes?: number;
-  totalComments?: number;
+  commentsCount?: number;
+  likesCount?: number;
+  viewsCount?: number;
   profile: Profile;
   createdAt: string;
 }
