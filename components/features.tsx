@@ -76,7 +76,7 @@ function Navbar() {
 
 
 function HeroSection() {
-  return (  return (OhOh  return
+  return (
     <section className="relative pt-24 pb-32 overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-violet-900/30 rounded-full blur-[200px] z-0 opacity-70" />
 
