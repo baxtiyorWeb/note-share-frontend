@@ -42,13 +42,11 @@ function Navbar() {
       className="sticky top-0 z-50 w-full bg-slate-950/80 backdrop-blur-sm border-b border-slate-800/70"
     >
       <div className="container mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-        {/* Logo/Brand */}
         <Link href="/" className="flex items-center text-2xl font-bold text-slate-50">
           <span className="text-violet-500 mr-1">Note</span>
           <span className="text-cyan-400">Share</span>
         </Link>
 
-        {/* Desktop Links */}
         <nav className="hidden md:flex items-center space-x-8">
           {['Features', 'Docs', 'Blog'].map((item) => (
             <Link key={item} href={`#${item.toLowerCase()}`} className="text-slate-300 font-medium hover:text-cyan-400 transition-colors duration-200">
@@ -57,7 +55,6 @@ function Navbar() {
           ))}
         </nav>
 
-        {/* Action Buttons (Consistent with CTA colors) */}
         <div className="flex items-center space-x-4">
           <Link href="/login" className="text-slate-300 font-medium hover:text-violet-400 transition-colors duration-200 hidden sm:block">
             Login
@@ -66,7 +63,7 @@ function Navbar() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Link href="/get-started" className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-full text-slate-950 bg-violet-500 hover:bg-violet-400 transition-all duration-300 shadow-lg shadow-violet-500/30">
+            <Link href="/signup" className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-full text-slate-950 bg-violet-500 hover:bg-violet-400 transition-all duration-300 shadow-lg shadow-violet-500/30">
               Get Started
               <Rocket className="ml-2 w-4 h-4" />
             </Link>
