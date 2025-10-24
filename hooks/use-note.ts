@@ -28,9 +28,6 @@ export const useNote = (id: number): UseQueryResult<Note, Error> => {
 
 
 
-
-
-
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const useUploadImage = () => {
   const [isPending, setIsPending] = useState(false);

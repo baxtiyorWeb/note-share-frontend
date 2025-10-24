@@ -42,3 +42,10 @@ export interface Note {
   profile: Profile; // Eslatma muallifi
   sharedWith?: Profile[];
 }
+
+export interface User {
+  id: number
+  email: string
+  profile: Profile
+}
+

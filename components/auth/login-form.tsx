@@ -12,11 +12,6 @@ import { motion } from "framer-motion"
 
 
 
-const name = () => {
-    
-    
-}
-
 
 
 
@@ -50,11 +45,11 @@ export function LoginForm() {
     setServerError(null);
     mutation.mutate(data, {
       onSuccess: () => {
-        toast.success("Muvaffaqiyatli kirdingiz!");
+        toast.success("Success!");
         router.push('/dashboard');
       },
       onError: (error: any) => {
-        const errorMessage = error.response?.data?.message || "Login yoki parol xato.";
+        const errorMessage = error.response?.data?.message || "Login or password mistake.";
         setServerError(errorMessage);
       },
     });
@@ -72,8 +67,8 @@ export function LoginForm() {
       >
         <Card className="w-full max-w-md mx-auto bg-slate-900/60 backdrop-blur-lg border border-slate-700/50 shadow-2xl shadow-black/25 text-slate-50">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold tracking-tight text-slate-50">Xush Kelibsiz!</CardTitle>
-            <CardDescription className="text-slate-400">Davom etish uchun hisobingizga kiring</CardDescription>
+            <CardTitle className="text-3xl font-bold tracking-tight text-slate-50">Welcome!</CardTitle>
+            <CardDescription className="text-slate-400">Sign in to continue</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
             <div className="grid grid-cols-3 gap-3">
@@ -90,7 +85,7 @@ export function LoginForm() {
             {serverError && (
               <Alert variant="destructive" className="bg-red-900/20 border-red-500/30 text-red-300">
                 <AlertCircle className="h-4 w-4 text-red-400" />
-                <AlertTitle>Xatolik</AlertTitle>
+                <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{serverError}</AlertDescription>
               </Alert>
             )}
@@ -119,7 +114,7 @@ export function LoginForm() {
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex justify-between items-center">
-                        <FormLabel className="text-slate-300">Parol</FormLabel>
+                        <FormLabel className="text-slate-300">Password</FormLabel>
                         <Link href="#" className="text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors">Parolni unutdingizmi?</Link>
                       </div>
                       <div className="relative">
@@ -134,13 +129,13 @@ export function LoginForm() {
                 />
                 <Button type="submit" className="w-full bg-violet-600 text-white hover:bg-violet-500 disabled:bg-slate-700" disabled={mutation.isPending}>
                   {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {mutation.isPending ? "Kirilmoqda..." : "Kirish"}
+                  {mutation.isPending ? "please wait..." : "Login"}
                 </Button>
               </form>
             </Form>
           </CardContent>
           <CardFooter className="justify-center text-sm">
-            <p className="text-slate-400">Hisobingiz yo&apos;qmi?{" "}
+            <p className="text-slate-400">Do you have an account??{" "}
               <Link href="/signup" className="font-semibold text-violet-400 hover:text-violet-300 transition-colors">Ro&apos;yxatdan o&apos;tish</Link>
             </p>
           </CardFooter>

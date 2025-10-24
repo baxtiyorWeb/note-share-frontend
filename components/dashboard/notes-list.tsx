@@ -22,6 +22,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { Edit, Trash2, Share2, Search, CheckCircle2, AlertCircle, NotebookPen, Plus, BookOpen, Eye, Heart, MessageCircle, MoreHorizontal, Loader2, ListFilter, TrendingUp, TrendingDown, ChevronUp, ChevronDown } from "lucide-react";
+import { useUsers } from "@/hooks/use-users";
+import { User } from "@/types";
 
 // --- Interfaces ---
 
@@ -317,19 +319,30 @@ const NoteDetailModal = ({ note, isOpen, onOpenChange }: { note: Note | null; is
   );
 };
 
-const ShareNoteDialog = ({ note, isOpen, onOpenChange }: { note: Note | null; isOpen: boolean; onOpenChange: (open: boolean) => void }) => {
+const ShareNoteDialog = ({
+  note,
+  isOpen,
+  onOpenChange,
+}: {
+  note: Note | null;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
   const shareMutation = useShareNote();
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ShareFormData>({ resolver: zodResolver(shareSchema) });
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ShareFormData>({
+    resolver: zodResolver(shareSchema),
+  });
+
   const watchedUsername = watch("username");
   const debouncedSearchTerm = useDebounce(watchedUsername || "", 500);
   const { data: targetProfile, isFetching: isFetchingProfile } = useProfileByUsername(debouncedSearchTerm);
   const userNotFound = debouncedSearchTerm && !isFetchingProfile && !targetProfile;
-  const isShareDisabled = !targetProfile || isFetchingProfile || shareMutation.isPending;
+  const { data: users, isLoading } = useUsers();
 
-  const onShareSubmit = () => {
-    if (!targetProfile || !note) return;
+  const onShareSubmit = (targetProfileId: number) => {
+    if (!note) return;
     shareMutation.mutate(
-      { noteId: note.id, targetProfileId: targetProfile.id },
+      { noteId: note.id, targetProfileId },
       {
         onSuccess: () => {
           reset();
@@ -342,75 +355,98 @@ const ShareNoteDialog = ({ note, isOpen, onOpenChange }: { note: Note | null; is
   if (!note) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) reset(); onOpenChange(open); }}>
-      <DialogContent className="max-w-md bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50 rounded-lg shadow-xl">
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) reset();
+        onOpenChange(open);
+      }}
+    >
+      <DialogContent className="max-w-md bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50 rounded-xl shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-gray-50">Share Note</DialogTitle>
-          <DialogDescription className="text-gray-600 dark:text-gray-400">Share "{note.title}" with another user.</DialogDescription>
+          <DialogTitle className="text-2xl font-bold">Share Note</DialogTitle>
+          <DialogDescription className="text-gray-600 dark:text-gray-400">
+            Share "{note.title}" with another user.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onShareSubmit)} className="space-y-4 pt-4">
+
+        <form onSubmit={handleSubmit(() => { })} className="space-y-4 pt-4">
+          {/* Search Input */}
           <div>
-            <Label htmlFor="username" className="text-gray-700 dark:text-gray-300 mb-2 block">Username</Label>
+            <Label htmlFor="username" className="mb-2 block text-gray-700 dark:text-gray-300">
+              Search Username
+            </Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400" />
               <Input
                 id="username"
                 placeholder="e.g., john.doe"
-                className="pl-10 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400"
+                className="pl-10 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                 {...register("username")}
               />
             </div>
-            {errors.username && <p className="text-sm text-rose-500 dark:text-rose-400 mt-2">{errors.username.message}</p>}
-          </div>
-          <div className="min-h-[60px]">
-            {isFetchingProfile && (
-              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Searching...
-              </div>
-            )}
-            {userNotFound && (
-              <div className="text-sm text-rose-500 dark:text-rose-400 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" /> User not found.
-              </div>
-            )}
-            {targetProfile && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md flex items-center gap-3"
-              >
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={targetProfile.avatar} />
-                  <AvatarFallback className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{getInitials(targetProfile)}</AvatarFallback>
-                </Avatar>
-                <p className="font-medium text-gray-900 dark:text-gray-200">{targetProfile.username}</p>
-                <CheckCircle2 className="w-5 h-5 text-green-500 dark:text-green-400 ml-auto" />
-              </motion.div>
+            {errors.username && (
+              <p className="text-sm text-rose-500 dark:text-rose-400 mt-2">
+                {errors.username.message}
+              </p>
             )}
           </div>
-          <DialogFooter className="gap-2">
+
+          <div className="min-h-[200px] space-y-3">
+            {isLoading ? (
+              <div className="flex items-center gap-2 text-gray-500">
+                <Loader2 className="w-4 h-4 animate-spin" /> Loading users...
+              </div>
+            ) : users && users.length > 0 ? (
+              users?.map((user: User) => (
+                <motion.div
+                  key={user.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={user.profile.avatar || ""} />
+                      <AvatarFallback className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                        {getInitials(user.profile)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-gray-200">
+                        {user.profile.username}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => onShareSubmit(user.profile.id)}
+                    disabled={shareMutation.isPending}
+                    className="bg-indigo-600 text-white dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600"
+                  >
+                    {shareMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Share2 className="w-4 h-4" />
+                    )}
+                  </Button>
+                </motion.div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No users found.</p>
+            )}
+          </div>
+
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+              className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
             >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isShareDisabled}
-              className="bg-indigo-600 text-white dark:bg-indigo-500 dark:hover:bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
-            >
-              {shareMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" /> Sharing...
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-4 h-4 mr-2" /> Share Note
-                </>
-              )}
+              Close
             </Button>
           </DialogFooter>
         </form>
@@ -420,6 +456,7 @@ const ShareNoteDialog = ({ note, isOpen, onOpenChange }: { note: Note | null; is
 };
 
 
+
 export default function NotesListPage() {
   const { data: notes, isLoading: isNotesLoading } = useNotes();
   const { data: stats, isLoading: isStatsLoading } = useDashboardStats();
@@ -427,7 +464,6 @@ export default function NotesListPage() {
 
   const [noteForView, setNoteForView] = useState<Note | null>(null);
   const [noteForShare, setNoteForShare] = useState<Note | null>(null);
-  // Add state for search term and filter/sort
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
@@ -460,30 +496,23 @@ export default function NotesListPage() {
     <TooltipProvider delayDuration={100}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 max-w-[1500px] mx-auto"> {/* Global padding kamaytirildi */}
 
-        {/* 1. Header Section - Mobile va Desktopda moslashuvchan */}
         <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-
-          {/* Sarlavha qismi */}
           <div className="flex-shrink-0">
-            {/* Kichik ekranlarda kichikroq, katta ekranlarda katta sarlavha */}
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-50">My Notes</h1>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">{notes.length} note{notes.length !== 1 ? "s" : ""} in your collection</p>
           </div>
 
-          {/* Qidiruv va Tugmalar (Bir qatorga joylashtirildi) */}
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-grow">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" /> {/* Kichikroq ikon */}
               <Input
                 placeholder="Search notes..."
-                // Mobil/desktop kengligi: mobil telefonlarda to'liq ekran, desktopda 64
                 className="pl-9 w-full md:w-64 h-10 bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700 focus:border-indigo-500 dark:focus:border-violet-400"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
-            {/* Filter/Sort Button (Mobil uchun ham to'g'ri o'lchamda) */}
             <Button
               variant="outline"
               size="icon"
@@ -492,7 +521,6 @@ export default function NotesListPage() {
               <ListFilter className="w-5 h-5 text-gray-500 dark:text-slate-400" />
             </Button>
 
-            {/* New Note Button (Mobil/Desktop matnni ko'rsatishi/yashirishi) */}
             <Button asChild className="h-10 px-4 bg-indigo-600 text-white dark:bg-violet-500 dark:hover:bg-violet-600 hover:bg-indigo-700 flex-shrink-0">
               <Link href="/dashboard/new">
                 <Plus className="w-4 h-4 mr-0 sm:mr-2" />
@@ -502,17 +530,14 @@ export default function NotesListPage() {
           </div>
         </header>
 
-        {/* 2. Dashboard Stats Section (Avvalgi qadamda to'liq responsive qilingan) */}
         {isStatsLoading ? (
           <div className="w-full h-20 flex justify-center items-center">
             <Loader2 className="animate-spin text-indigo-500 dark:text-violet-400" />
           </div>
         ) : (
-          // DashboardStats komponenti (grid-cols-2 / md:grid-cols-4) ishlashi uchun to'g'ri qo'shiladi
           <DashboardStats stats={stats} />
         )}
 
-        {/* 3. Note Cards Section (Responsive Grid) */}
         {filteredNotes.length === 0 && notes.length > 0 && debouncedSearchTerm ? (
           <div className="text-center py-10 text-gray-600 dark:text-gray-400">
             <AlertCircle className="w-8 h-8 mx-auto mb-3 text-yellow-500" />
@@ -524,7 +549,6 @@ export default function NotesListPage() {
             variants={{ show: { transition: { staggerChildren: 0.05 } } }}
             initial="hidden"
             animate="show"
-            // Grid layout: mobil 1 qator, kichik tablet 2 qator, desktop 3/4 qator
             className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           >
             <AnimatePresence>
@@ -543,7 +567,6 @@ export default function NotesListPage() {
 
       </div>
 
-      {/* Modallar */}
       <NoteDetailModal note={noteForView} isOpen={!!noteForView} onOpenChange={() => setNoteForView(null)} />
       <ShareNoteDialog note={noteForShare} isOpen={!!noteForShare} onOpenChange={() => setNoteForShare(null)} />
     </TooltipProvider>

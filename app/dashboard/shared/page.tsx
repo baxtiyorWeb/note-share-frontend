@@ -48,7 +48,7 @@ export default function SharedNotesPage() {
     if (selectedNote?.id) {
       addViewMutation.mutate();
     }
-  }, [selectedNote?.id, addViewMutation]);
+  }, [selectedNote?.id,]);
 
   const handleToggleLike = useCallback((noteId: number) => {
     // Since NoteDetailModal has its own toggleLike, but to update the list, we can refetch or optimistically update

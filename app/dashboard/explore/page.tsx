@@ -195,7 +195,7 @@ export default function ExplorePage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500 flex-shrink-0" />
               <Input
                 id="search-explore"
-                placeholder="Eslatma nomi, kontenti yoki muallifini qidirish..."
+                placeholder="Search for a note by title, content, or author..."
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="
       pl-9
