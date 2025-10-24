@@ -21,10 +21,14 @@ export const useNotes = (): UseQueryResult<Note[], Error> => {
 export const useNote = (id: number): UseQueryResult<Note, Error> => {
   return useQuery({
     queryKey: ['note', id],
-    queryFn: () => getNoteById(id),
+    queryFn: async () => await getNoteById(id),
     enabled: !!id,
   });
 };
+
+
+
+
 
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
