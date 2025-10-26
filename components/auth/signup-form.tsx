@@ -16,14 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useRegister } from "@/hooks/use-auth";
 
-
-
 const signUpSchema = z.object({
-  email: z.string().email("Iltimos, to'g'ri email manzil kiriting"),
-  password: z.string().min(6, "Parol kamida 6 belgidan iborat bo'lishi kerak"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Parollar mos kelmadi",
+  message: "Passwords do not match",
   path: ["confirmPassword"],
 });
 
@@ -49,11 +47,11 @@ export function SignUpForm() {
     const { email, password, confirmPassword } = data;
     mutation.mutate({ email, password, confirmPassword }, {
       onSuccess: () => {
-        toast.success("Hisob muvaffaqiyatli yaratildi!");
+        toast.success("Account created successfully!");
         router.push('/dashboard');
       },
       onError: (error: any) => {
-        const errorMessage = error.response?.data?.message || "Ro'yxatdan o'tishda xatolik yuz berdi.";
+        const errorMessage = error.response?.data?.message || "An error occurred during registration.";
         setServerError(errorMessage);
       },
     });
@@ -71,14 +69,14 @@ export function SignUpForm() {
       >
         <Card className="w-full max-w-md mx-auto bg-slate-900/60 backdrop-blur-lg border border-slate-700/50 shadow-2xl shadow-black/25 text-slate-50">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold tracking-tight text-slate-50">Hisob Yaratish</CardTitle>
-            <CardDescription className="text-slate-400">Boshlash uchun ma&apos;lumotlarni to&apos;ldiring</CardDescription>
+            <CardTitle className="text-3xl font-bold tracking-tight text-slate-50">Create Account</CardTitle>
+            <CardDescription className="text-slate-400">Fill in the details to get started</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
             {serverError && (
               <Alert variant="destructive" className="bg-red-900/20 border-red-500/30 text-red-300">
                 <AlertCircle className="h-4 w-4 text-red-400" />
-                <AlertTitle>Xatolik</AlertTitle>
+                <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{serverError}</AlertDescription>
               </Alert>
             )}
@@ -94,7 +92,7 @@ export function SignUpForm() {
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                         <FormControl>
-                          <Input placeholder="siz@email.com" {...field} className="pl-10 bg-slate-800/50 border-slate-600 focus:border-violet-500 placeholder:text-slate-500" />
+                          <Input placeholder="you@email.com" {...field} className="pl-10 bg-slate-800/50 border-slate-600 focus:border-violet-500 placeholder:text-slate-500" />
                         </FormControl>
                       </div>
                       <FormMessage />
@@ -106,7 +104,7 @@ export function SignUpForm() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-slate-300">Parol</FormLabel>
+                      <FormLabel className="text-slate-300">Password</FormLabel>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                         <FormControl>
@@ -122,7 +120,7 @@ export function SignUpForm() {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-slate-300">Parolni Tasdiqlang</FormLabel>
+                      <FormLabel className="text-slate-300">Confirm Password</FormLabel>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                         <FormControl>
@@ -135,14 +133,14 @@ export function SignUpForm() {
                 />
                 <Button type="submit" className="w-full bg-violet-600 text-white hover:bg-violet-500 disabled:bg-slate-700" disabled={mutation.isPending}>
                   {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {mutation.isPending ? "Yaratilmoqda..." : "Ro'yxatdan o'tish"}
+                  {mutation.isPending ? "Creating account..." : "Sign Up"}
                 </Button>
               </form>
             </Form>
           </CardContent>
           <CardFooter className="justify-center text-sm">
-            <p className="text-slate-400">Hisobingiz bormi?{" "}
-              <Link href="/login" className="font-semibold text-violet-400 hover:text-violet-300 transition-colors">Kirish</Link>
+            <p className="text-slate-400">Already have an account?{" "}
+              <Link href="/login" className="font-semibold text-violet-400 hover:text-violet-300 transition-colors">Login</Link>
             </p>
           </CardFooter>
         </Card>

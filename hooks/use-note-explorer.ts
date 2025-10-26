@@ -18,7 +18,7 @@ export interface NotesPage {
 export const useExploreNotes = (
   filters: ExploreFilters
 ): UseInfiniteQueryResult<InfiniteData<NotesPage>, Error> => {
-  const size = 5;
+  const size = 30;
 
   return useInfiniteQuery<
     NotesPage,
@@ -44,7 +44,7 @@ export const useExploreNotes = (
       return {
         ...data,
         page: Number(data.page),
-        size: Number(5),
+        size: size,
         nextPage: data.nextPage ? Number(data.nextPage) : undefined,
       };
     },

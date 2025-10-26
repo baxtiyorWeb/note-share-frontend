@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,7 +43,7 @@ import {
   ArrowLeft, Save, Loader2, Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading1, Heading2, Heading3, Pilcrow, List, ListOrdered, ImageIcon, Quote,
   Minus, Maximize, Minimize, BookOpen, Crop, AlignLeft, AlignCenter, AlignRight, Share2, Search,
-  AlertTriangle, CheckCircle, Link2, Code2, Palette, Grid, Menu
+  AlertTriangle, CheckCircle, Link2, Code2, Palette, Grid, Menu, Type, AlignJustify
 } from "lucide-react";
 
 const noteSchema = z.object({ title: z.string().min(1, "Sarlavha kiritilishi shart") });
@@ -80,34 +80,34 @@ const ToolbarButton = ({ isActive, onClick, children, title }: any) => (
         variant="ghost"
         size="icon"
         className={cn(
-          "h-8 w-8",
+          "h-9 w-9 rounded-full transition-all duration-200",
           isActive
-            ? "bg-gray-200 text-gray-900 dark:bg-indigo-500/20 dark:text-indigo-200"
-            : "text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+            ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-800/50 dark:text-indigo-200 shadow-md"
+            : "text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-100 hover:shadow-sm"
         )}
         onClick={onClick}
       >
         {children}
       </Button>
     </TooltipTrigger>
-    <TooltipContent side="bottom" className="bg-gray-900 dark:bg-gray-700 text-white"><p>{title}</p></TooltipContent>
+    <TooltipContent side="top" className="bg-indigo-900 text-white px-3 py-1 rounded-full shadow-lg"><p>{title}</p></TooltipContent>
   </Tooltip>
 );
 
 const ColorPicker = ({ editor, type }: { editor: any, type: 'color' | 'highlight' }) => {
-  const colors = ['#f87171', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a78bfa', '#f472b6', '#9ca3af'];
+  const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#6366f1', '#ec4899', '#6b7280'];
   const title = type === 'color' ? 'Matn rangi' : 'Fon rangi';
   const command = type === 'color' ? (color: string) => editor.chain().focus().setColor(color).run() : (color: string) => editor.chain().focus().toggleHighlight({ color }).run();
 
   return (
     <Popover>
-      <PopoverTrigger asChild><ToolbarButton title={title}><Palette size={16} /></ToolbarButton></PopoverTrigger>
-      <PopoverContent className="w-auto p-2 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+      <PopoverTrigger asChild><ToolbarButton title={title}><Palette size={18} /></ToolbarButton></PopoverTrigger>
+      <PopoverContent className="w-auto p-3 bg-white dark:bg-gray-950 border border-indigo-200 dark:border-indigo-800 rounded-xl shadow-xl">
         <div className="grid grid-cols-4 gap-2">
           {colors.map(color => (
-            <button key={color} onClick={() => command(color)} className="w-6 h-6 rounded-md border border-gray-300 dark:border-gray-600" style={{ backgroundColor: color }} />
+            <button key={color} onClick={() => command(color)} className="w-7 h-7 rounded-full border border-indigo-300 dark:border-indigo-700 hover:scale-110 transition-transform" style={{ backgroundColor: color }} />
           ))}
-          <button onClick={() => command('')} className="w-6 h-6 rounded-md border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-400 dark:text-gray-300">X</button>
+          <button onClick={() => command('')} className="w-7 h-7 rounded-full border border-indigo-300 dark:border-indigo-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:scale-110 transition-transform">X</button>
         </div>
       </PopoverContent>
     </Popover>
@@ -151,21 +151,21 @@ const CropModal = ({ isOpen, onClose, imageSrc, onConfirm }: any) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md sm:max-w-lg md:max-w-2xl bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-        <DialogHeader><DialogTitle>Rasmni kesish va o'lchamini o'zgartirish</DialogTitle></DialogHeader>
-        <div className="relative h-64 sm:h-80 md:h-96 w-full bg-gray-100 dark:bg-gray-800 rounded-md">
+      <DialogContent className="max-w-md sm:max-w-lg md:max-w-2xl bg-white dark:bg-gray-950 border border-indigo-200 dark:border-indigo-800 rounded-2xl shadow-2xl">
+        <DialogHeader><DialogTitle className="text-indigo-900 dark:text-indigo-100">Rasmni kesish va o'lchamini o'zgartirish</DialogTitle></DialogHeader>
+        <div className="relative h-64 sm:h-80 md:h-96 w-full bg-gray-100 dark:bg-gray-900 rounded-xl overflow-hidden shadow-inner">
           {imageSrc && <Cropper image={imageSrc} crop={crop} zoom={zoom} aspect={4 / 3} onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={onCropComplete} />}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
           <div>
-            <Label className="text-gray-700 dark:text-gray-300">Kattalashtirish</Label>
-            <input type="range" min="1" max="3" step="0.1" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg accent-indigo-500" />
+            <Label className="text-indigo-800 dark:text-indigo-200 mb-2">Kattalashtirish</Label>
+            <input type="range" min="1" max="3" step="0.1" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="w-full h-2 bg-indigo-200 dark:bg-indigo-800 rounded-lg accent-indigo-500 cursor-pointer" />
           </div>
           <div>
-            <Label className="text-gray-700 dark:text-gray-300">Rasm o'lchami</Label>
+            <Label className="text-indigo-800 dark:text-indigo-200 mb-2">Rasm o'lchami</Label>
             <Select value={imageSize} onValueChange={setImageSize}>
-              <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"><SelectValue /></SelectTrigger>
-              <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+              <SelectTrigger className="bg-white dark:bg-gray-950 border-indigo-300 dark:border-indigo-700 rounded-lg"><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-white dark:bg-gray-950 border-indigo-200 dark:border-indigo-800 rounded-lg">
                 <SelectItem value="small">Kichik (200px)</SelectItem>
                 <SelectItem value="medium">O'rta (500px)</SelectItem>
                 <SelectItem value="large">Katta (800px)</SelectItem>
@@ -173,9 +173,9 @@ const CropModal = ({ isOpen, onClose, imageSrc, onConfirm }: any) => {
             </Select>
           </div>
         </div>
-        <DialogFooter className="flex gap-2 sm:gap-0">
-          <Button variant="outline" onClick={onClose} className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">Bekor qilish</Button>
-          <Button onClick={handleConfirm} className="bg-gray-900 text-white dark:bg-indigo-600 dark:hover:bg-indigo-500"><Crop className="mr-2 h-4 w-4" /> Rasmni qo'yish</Button>
+        <DialogFooter className="flex gap-3 mt-4">
+          <Button variant="outline" onClick={onClose} className="border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg">Bekor qilish</Button>
+          <Button onClick={handleConfirm} className="bg-indigo-600 text-white hover:bg-indigo-500 rounded-lg"><Crop className="mr-2 h-4 w-4" /> Rasmni qo'yish</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -192,18 +192,18 @@ const LinkModal = ({ isOpen, onClose, onConfirm, initialUrl }: { isOpen: boolean
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-xs sm:max-w-md bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+      <DialogContent className="max-w-xs sm:max-w-md bg-white dark:bg-gray-950 border border-indigo-200 dark:border-indigo-800 rounded-2xl shadow-2xl">
         <DialogHeader>
-          <DialogTitle>Havola qo'shish</DialogTitle>
-          <DialogDescription>Havola URL manzilini kiriting.</DialogDescription>
+          <DialogTitle className="text-indigo-900 dark:text-indigo-100">Havola qo'shish</DialogTitle>
+          <DialogDescription className="text-indigo-700 dark:text-indigo-300">Havola URL manzilini kiriting.</DialogDescription>
         </DialogHeader>
         <div className="pt-4">
-          <Label htmlFor="link-url" className="text-gray-700 dark:text-gray-300 mb-2">URL</Label>
-          <Input id="link-url" value={url} onChange={(e) => setUrl(e.target.value)} className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:border-indigo-500" />
+          <Label htmlFor="link-url" className="text-indigo-800 dark:text-indigo-200 mb-2">URL</Label>
+          <Input id="link-url" value={url} onChange={(e) => setUrl(e.target.value)} className="bg-gray-100 dark:bg-gray-900 border-indigo-300 dark:border-indigo-700 focus:border-indigo-500 rounded-lg" />
         </div>
-        <DialogFooter className="flex gap-2 sm:gap-0">
-          <Button variant="outline" onClick={onClose} className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">Bekor qilish</Button>
-          <Button onClick={handleSubmit} className="bg-gray-900 text-white dark:bg-indigo-600 dark:hover:bg-indigo-500"><Link2 className="mr-2 h-4 w-4" /> Qo'shish</Button>
+        <DialogFooter className="flex gap-3 mt-4">
+          <Button variant="outline" onClick={onClose} className="border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg">Bekor qilish</Button>
+          <Button onClick={handleSubmit} className="bg-indigo-600 text-white hover:bg-indigo-500 rounded-lg"><Link2 className="mr-2 h-4 w-4" /> Qo'shish</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -229,34 +229,34 @@ const ShareModal = ({ noteId, isOpen, onClose }: { noteId: number, isOpen: boole
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) reset(); onClose(); }}>
-      <DialogContent className="max-w-xs sm:max-w-md bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+      <DialogContent className="max-w-xs sm:max-w-md bg-white dark:bg-gray-950 border border-indigo-200 dark:border-indigo-800 rounded-2xl shadow-2xl">
         <DialogHeader>
-          <DialogTitle>Eslatmani ulashish</DialogTitle>
-          <DialogDescription>Bu eslatmani boshqa foydalanuvchi bilan ulashing.</DialogDescription>
+          <DialogTitle className="text-indigo-900 dark:text-indigo-100">Eslatmani ulashish</DialogTitle>
+          <DialogDescription className="text-indigo-700 dark:text-indigo-300">Bu eslatmani boshqa foydalanuvchi bilan ulashing.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onShareSubmit)} className="space-y-4 pt-4">
           <div>
-            <Label htmlFor="username" className="text-gray-700 dark:text-gray-300 mb-2">Foydalanuvchi nomi</Label>
+            <Label htmlFor="username" className="text-indigo-800 dark:text-indigo-200 mb-2">Foydalanuvchi nomi</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
-              <Input id="username" placeholder="masalan, john.doe" className="pl-10 bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:border-indigo-500" {...register("username")} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400 dark:text-indigo-500" />
+              <Input id="username" placeholder="masalan, john.doe" className="pl-10 bg-gray-100 dark:bg-gray-900 border-indigo-300 dark:border-indigo-700 focus:border-indigo-500 rounded-lg" {...register("username")} />
             </div>
             {errors.username && <p className="text-sm text-red-500 dark:text-red-400 mt-2">{errors.username.message}</p>}
           </div>
           <div className="min-h-[60px]">
-            {isFetchingProfile && <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Qidirilmoqda...</div>}
+            {isFetchingProfile && <div className="text-sm text-indigo-500 dark:text-indigo-400 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Qidirilmoqda...</div>}
             {userNotFound && <div className="text-sm text-red-500 dark:text-red-400 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Foydalanuvchi topilmadi.</div>}
             {targetProfile && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md flex items-center gap-3">
-                <Avatar className="h-9 w-9"><AvatarImage src={targetProfile.avatar} /><AvatarFallback className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">U</AvatarFallback></Avatar>
-                <p className="font-medium text-gray-800 dark:text-gray-200">{targetProfile.username}</p>
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-3 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg flex items-center gap-3 shadow-sm">
+                <Avatar className="h-9 w-9"><AvatarImage src={targetProfile.avatar} /><AvatarFallback className="bg-indigo-200 dark:bg-indigo-800 text-indigo-600 dark:text-indigo-300">U</AvatarFallback></Avatar>
+                <p className="font-medium text-indigo-800 dark:text-indigo-200">{targetProfile.username}</p>
                 <CheckCircle className="w-5 h-5 text-green-500 dark:text-green-400 ml-auto" />
               </motion.div>
             )}
           </div>
-          <DialogFooter className="flex gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={onClose} className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">Bekor qilish</Button>
-            <Button type="submit" disabled={!targetProfile || shareMutation.isPending} className="bg-gray-900 text-white dark:bg-indigo-600 dark:hover:bg-indigo-500 disabled:bg-gray-300 dark:disabled:bg-gray-700">
+          <DialogFooter className="flex gap-3">
+            <Button type="button" variant="outline" onClick={onClose} className="border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg">Bekor qilish</Button>
+            <Button type="submit" disabled={!targetProfile || shareMutation.isPending} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-indigo-300 dark:disabled:bg-indigo-800 rounded-lg">
               {shareMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Share2 className="w-4 h-4 mr-2" />} Ulashish
             </Button>
           </DialogFooter>
@@ -268,7 +268,7 @@ const ShareModal = ({ noteId, isOpen, onClose }: { noteId: number, isOpen: boole
 
 export function NoteEditor() {
   const { id } = useParams()
-  const noteId = String(id)
+  const noteId = id?.toString()
   const router = useRouter();
   const isEdit = !!noteId;
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
@@ -277,9 +277,10 @@ export function NoteEditor() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [isToolbarExpanded, setIsToolbarExpanded] = useState(false);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
-  const { data: note, isLoading: isNoteLoading } = useNote(isEdit ? parseInt(noteId!) : 0);
+  const { data: note, isLoading: isNoteLoading } = useNote(isEdit ? Number(noteId) : 0);
 
   const createMutation = useCreateNote();
   const updateMutation = useUpdateNote();
@@ -315,7 +316,7 @@ export function NoteEditor() {
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
       Underline,
       Link.configure({ openOnClick: false }),
       CustomImage.configure({ inline: true, allowBase64: true }),
@@ -332,7 +333,7 @@ export function NoteEditor() {
     ],
     content: "",
     editorProps: {
-      attributes: { class: "prose dark:prose-invert max-w-full focus:outline-none min-h-[40vh]" },
+      attributes: { class: "prose dark:prose-invert max-w-full focus:outline-none min-h-[50vh] p-4 md:p-6 text-gray-800 dark:text-gray-200" },
     },
     onUpdate: () => editor?.commands.focus(),
   });
@@ -390,7 +391,7 @@ export function NoteEditor() {
       src: croppedImage,
       alt: 'Cropped image',
     }).updateAttributes('image', {
-      style: 'border-radius: 8px; width: 100%;',
+      style: 'border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: ' + width + 'px; margin: 1rem auto; display: block;',
       width
     }).run();
   };
@@ -406,43 +407,44 @@ export function NoteEditor() {
 
   if (isNoteLoading && isEdit) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500 dark:text-indigo-400" />
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-indigo-50 to-gray-100 dark:from-indigo-950 dark:to-gray-900">
+        <Loader2 className="h-12 w-12 animate-spin text-indigo-600 dark:text-indigo-400" />
       </div>
     );
   }
 
   return (
     <TooltipProvider>
-      <div className={cn("bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col", isFocusMode && "p-2 sm:p-4 md:p-6")}>
+      <div className={cn("bg-gradient-to-br from-indigo-50 to-gray-100 dark:from-indigo-950 dark:to-gray-900 min-h-screen flex flex-col", isFocusMode && "p-0")}>
         <motion.header
-          initial={{ y: -60 }}
+          initial={{ y: -80 }}
           animate={{ y: 0 }}
+          transition={{ type: "spring", stiffness: 120 }}
           className={cn(
-            "bg-white/80 dark:bg-gray-950/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 sticky top-0 z-20",
-            isFocusMode && "opacity-0 -mb-16 pointer-events-none"
+            "bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-indigo-200 dark:border-indigo-900 sticky top-0 z-30 shadow-md",
+            isFocusMode && "opacity-0 -mb-20 pointer-events-none transition-opacity duration-300"
           )}
         >
-          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-2 sm:p-4 gap-2">
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button variant="ghost" size="icon" asChild>
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 gap-3">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <Button variant="ghost" size="icon" asChild className="hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-full">
                 <NextLink href="/dashboard">
-                  <ArrowLeft className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  <ArrowLeft className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 </NextLink>
               </Button>
               <Input
                 placeholder="Sarlavha..."
                 {...register("title")}
-                className="text-lg sm:text-xl font-bold border-none focus-visible:ring-0 ring-offset-0 flex-1 bg-transparent text-gray-900 dark:text-gray-50 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="text-2xl font-extrabold border-none focus-visible:ring-0 ring-offset-0 flex-1 bg-transparent text-indigo-900 dark:text-indigo-100 placeholder:text-indigo-400 dark:placeholder:text-indigo-500 tracking-tight"
               />
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
               {isEdit && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setIsShareModalOpen(true)}
-                  className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-full px-4"
                 >
                   <Share2 className="w-4 h-4 mr-2" /> Ulashish
                 </Button>
@@ -450,161 +452,216 @@ export function NoteEditor() {
               <Button
                 onClick={handleSubmit(handleSave)}
                 disabled={createMutation.isPending || updateMutation.isPending}
-                className="bg-gray-900 text-white hover:bg-gray-800 dark:bg-indigo-600 dark:text-white dark:hover:bg-indigo-500"
+                className="bg-indigo-600 text-white hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400 rounded-full px-6 shadow-md"
               >
                 {createMutation.isPending || updateMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                Save
+                Saqlash
               </Button>
             </div>
           </div>
           {errors.title && (
-            <div className="bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 text-xs text-center py-1">
+            <div className="bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300 text-sm text-center py-2 font-medium">
               {errors.title.message}
             </div>
           )}
         </motion.header>
 
-        <main className="flex-grow flex flex-col px-2 sm:px-4 md:px-6 py-4 sm:py-6">
+        <main className="flex-grow flex flex-col px-2 sm:px-6 md:px-8 py-4 md:py-6 relative">
           <motion.div
             layout
-            transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
+            transition={{ duration: 0.4, type: "spring", bounce: 0.15 }}
             className={cn(
-              "bg-white dark:bg-gray-900 rounded-xl shadow-lg dark:shadow-2xl dark:shadow-black/20 border border-gray-200 dark:border-gray-800 flex flex-col",
-              isFocusMode ? "w-full h-full" : "max-w-6xl mx-auto" // Increased max-width for desktop
+              "bg-white dark:bg-gray-950 rounded-3xl shadow-2xl dark:shadow-indigo-900/20 border border-indigo-100 dark:border-indigo-900/50 overflow-hidden",
+              isFocusMode ? "w-full h-full" : "max-w-7xl mx-auto"
             )}
           >
             {editor && (
               <>
-                {/* Main Toolbar (Collapsible on Mobile) */}
-                <div className="p-2 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between flex-wrap gap-2 bg-white/95 dark:bg-gray-900/90 z-10 rounded-t-xl">
-                  <div className="flex items-center gap-1 flex-wrap">
+                {/* Bubble Menu for Selection */}
+                <BubbleMenu editor={editor} tippyOptions={{ duration: 200, animation: 'fade' }} className="bg-white dark:bg-gray-950 border border-indigo-200 dark:border-indigo-800 rounded-full shadow-lg p-1 flex gap-1">
+                  <ToolbarButton isActive={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()} title="Bold"><Bold size={16} /></ToolbarButton>
+                  <ToolbarButton isActive={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic"><Italic size={16} /></ToolbarButton>
+                  <ToolbarButton isActive={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()} title="Underline"><UnderlineIcon size={16} /></ToolbarButton>
+                  <ToolbarButton isActive={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()} title="Strikethrough"><Strikethrough size={16} /></ToolbarButton>
+                  <ColorPicker editor={editor} type="color" />
+                  <ColorPicker editor={editor} type="highlight" />
+                </BubbleMenu>
+
+                {/* Main Toolbar - Bottom on mobile, top on desktop */}
+                <div className={cn(
+                  "fixed bottom-0 left-0 right-0 md:static z-20 bg-white/95 dark:bg-gray-950/95 backdrop-blur-md border-t md:border-b border-indigo-200 dark:border-indigo-800 flex items-center justify-center md:justify-between flex-wrap gap-2 p-3 md:p-4 transition-all duration-300",
+                  isFocusMode && "translate-y-full md:translate-y-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto"
+                )}>
+                  <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
                     <ToolbarButton title="Bold" isActive={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
-                      <Bold size={16} />
+                      <Bold size={18} />
                     </ToolbarButton>
                     <ToolbarButton title="Italic" isActive={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
-                      <Italic size={16} />
+                      <Italic size={18} />
                     </ToolbarButton>
                     <ToolbarButton title="Underline" isActive={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()}>
-                      <UnderlineIcon size={16} />
+                      <UnderlineIcon size={18} />
                     </ToolbarButton>
                     <ToolbarButton title="Strikethrough" isActive={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>
-                      <Strikethrough size={16} />
+                      <Strikethrough size={18} />
                     </ToolbarButton>
                     <ToolbarButton title="Link" isActive={editor.isActive("link")} onClick={openLinkModal}>
-                      <Link2 size={16} />
+                      <Link2 size={18} />
                     </ToolbarButton>
-                    <ToolbarButton title="Code" isActive={editor.isActive("code")} onClick={() => editor.chain().focus().toggleCode().run()}>
-                      <Code2 size={16} />
+                    <ToolbarButton title="Bullet List" isActive={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+                      <List size={18} />
+                    </ToolbarButton>
+                    <ToolbarButton title="Ordered List" isActive={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+                      <ListOrdered size={18} />
+                    </ToolbarButton>
+                    <ToolbarButton title="Image" onClick={() => imageFileInputRef.current?.click()}>
+                      <ImageIcon size={18} />
                     </ToolbarButton>
                     <ColorPicker editor={editor} type="color" />
                     <ColorPicker editor={editor} type="highlight" />
-                    <ToolbarButton title="Ro'yxat" isActive={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
-                      <List size={16} />
-                    </ToolbarButton>
-                    <ToolbarButton title="Raqamlangan ro'yxat" isActive={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
-                      <ListOrdered size={16} />
-                    </ToolbarButton>
-                    <ToolbarButton title="Rasm qo'yish" onClick={() => imageFileInputRef.current?.click()}>
-                      <ImageIcon size={16} />
+                  </div>
+                  <div className="flex items-center gap-2 md:hidden">
+                    <ToolbarButton title="More" onClick={() => setIsToolbarExpanded(!isToolbarExpanded)}>
+                      <Menu size={18} />
                     </ToolbarButton>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <ToolbarButton title="Sarlavhalar"><Pilcrow size={16} /></ToolbarButton>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-1 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 grid grid-cols-3 gap-1">
-                        <ToolbarButton title="Sarlavha 1" isActive={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
-                          <Heading1 size={16} />
-                        </ToolbarButton>
-                        <ToolbarButton title="Sarlavha 2" isActive={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
-                          <Heading2 size={16} />
-                        </ToolbarButton>
-                        <ToolbarButton title="Sarlavha 3" isActive={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
-                          <Heading3 size={16} />
-                        </ToolbarButton>
-                      </PopoverContent>
-                    </Popover>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <ToolbarButton title="Andoza qo'shish"><BookOpen size={16} /></ToolbarButton>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-72 sm:w-80 p-2 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-                        <Tabs defaultValue="grammar" className="w-full">
-                          <TabsList className="grid w-full grid-cols-3 bg-gray-100 dark:bg-gray-800">
-                            <TabsTrigger value="grammar">Grammar</TabsTrigger>
-                            <TabsTrigger value="topics">Topics</TabsTrigger>
-                            <TabsTrigger value="skills">Skills</TabsTrigger>
-                          </TabsList>
-                          <TabsContent value="grammar" className="mt-2 space-y-1 max-h-60 overflow-y-auto p-1">
-                            {grammarTemplates.map((t, i) => (
-                              <Button key={i} variant="ghost" className="w-full justify-start h-auto text-left" onClick={() => handleTemplateInsert(t.content)}>
-                                {t.title}
-                              </Button>
-                            ))}
-                          </TabsContent>
-                          <TabsContent value="topics" className="mt-2 space-y-1 max-h-60 overflow-y-auto p-1">
-                            {topicTemplates.map((t, i) => (
-                              <Button key={i} variant="ghost" className="w-full justify-start h-auto text-left" onClick={() => handleTemplateInsert(t.content)}>
-                                {t.title}
-                              </Button>
-                            ))}
-                          </TabsContent>
-                          <TabsContent value="skills" className="mt-2 space-y-2 max-h-60 overflow-y-auto p-1">
-                            <Select onValueChange={setSelectedSkill}>
-                              <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                                <SelectValue placeholder="Select Skill" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-                                <SelectItem value="speaking">Speaking</SelectItem>
-                                <SelectItem value="reading">Reading</SelectItem>
-                                <SelectItem value="writing">Writing</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {selectedSkill && (skillTemplates as any)[selectedSkill].map((template: any, index: number) => (
-                              <Button key={index} variant="ghost" className="w-full justify-start h-auto text-left" onClick={() => handleTemplateInsert(template.content)}>
-                                {template.title}
-                              </Button>
-                            ))}
-                          </TabsContent>
-                        </Tabs>
-                      </PopoverContent>
-                    </Popover>
+                  <div className="hidden md:flex items-center gap-2">
                     <ToolbarButton title={isFocusMode ? "Oddiy rejim" : "Fokus rejimi"} onClick={() => setIsFocusMode(!isFocusMode)}>
-                      {isFocusMode ? <Minimize size={16} /> : <Maximize size={16} />}
+                      {isFocusMode ? <Minimize size={18} /> : <Maximize size={18} />}
                     </ToolbarButton>
-                    <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsToolbarExpanded(!isToolbarExpanded)}>
-                      <Menu size={16} />
+                  </div>
+                </div>
+
+                {/* Secondary Toolbar - Above main on mobile (when expanded), below main on desktop */}
+                <div className={cn(
+                  "fixed bottom-[4.5rem] left-0 right-0 md:static z-10 bg-white/95 dark:bg-gray-950/95 backdrop-blur-md border-t md:border-b border-indigo-200 dark:border-indigo-800 flex items-center justify-center flex-wrap gap-2 p-3 md:p-4 transition-all duration-300",
+                  isFocusMode && "translate-y-full md:translate-y-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto",
+                  isToolbarExpanded ? "block" : "hidden md:block"
+                )}>
+                  <Popover>
+
+                    <PopoverContent className="w-auto p-3 bg-white dark:bg-gray-950 border border-indigo-200 dark:border-indigo-800 rounded-xl shadow-xl grid grid-cols-4 gap-2">
+                      <ToolbarButton title="Paragraph" isActive={editor.isActive("paragraph")} onClick={() => editor.chain().focus().setParagraph().run()}>
+                        <Type size={18} />
+                      </ToolbarButton>
+                      <ToolbarButton title="Heading 1" isActive={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
+                        <Heading1 size={18} />
+                      </ToolbarButton>
+                      <ToolbarButton title="Heading 2" isActive={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
+                        <Heading2 size={18} />
+                      </ToolbarButton>
+                      <ToolbarButton title="Heading 3" isActive={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
+                        <Heading3 size={18} />
+                      </ToolbarButton>
+                      <ToolbarButton title="Heading 4" isActive={editor.isActive("heading", { level: 4 })} onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}>
+                        <span className="font-bold text-sm">H4</span>
+                      </ToolbarButton>
+                      <ToolbarButton title="Heading 5" isActive={editor.isActive("heading", { level: 5 })} onClick={() => editor.chain().focus().toggleHeading({ level: 5 }).run()}>
+                        <span className="font-bold text-sm">H5</span>
+                      </ToolbarButton>
+                      <ToolbarButton title="Heading 6" isActive={editor.isActive("heading", { level: 6 })} onClick={() => editor.chain().focus().toggleHeading({ level: 6 }).run()}>
+                        <span className="font-bold text-sm">H6</span>
+                      </ToolbarButton>
+                    </PopoverContent>
+                  </Popover>
+                  <ToolbarButton title="Left Align" isActive={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}>
+                    <AlignLeft size={18} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Center Align" isActive={editor.isActive({ textAlign: "center" })} onClick={() => editor.chain().focus().setTextAlign("center").run()}>
+                    <AlignCenter size={18} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Right Align" isActive={editor.isActive({ textAlign: "right" })} onClick={() => editor.chain().focus().setTextAlign("right").run()}>
+                    <AlignRight size={18} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Justify" isActive={editor.isActive({ textAlign: "justify" })} onClick={() => editor.chain().focus().setTextAlign("justify").run()}>
+                    <AlignJustify size={18} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Horizontal Rule" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
+                    <Minus size={18} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Blockquote" isActive={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
+                    <Quote size={18} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Code" isActive={editor.isActive("code")} onClick={() => editor.chain().focus().toggleCode().run()}>
+                    <Code2 size={18} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Table" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+                    <Grid size={18} />
+                  </ToolbarButton>
+                </div>
+
+                {/* Side Panel for Additional Features (Templates) - Right side on desktop, full overlay on mobile */}
+                <motion.div
+                  initial={{ x: "100%" }}
+                  animate={{ x: isSidePanelOpen ? 0 : "100%" }}
+                  transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                  className={cn(
+                    "fixed top-0 right-0 h-full w-80 md:w-96 bg-white dark:bg-gray-950 border-l border-indigo-200 dark:border-indigo-800 shadow-2xl z-30 p-6 overflow-y-auto",
+                    isFocusMode && "hidden"
+                  )}
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-100">Andozalar</h3>
+                    <Button variant="ghost" size="icon" onClick={() => setIsSidePanelOpen(false)} className="text-indigo-600 dark:text-indigo-400">
+                      <ArrowLeft size={20} />
                     </Button>
                   </div>
-                </div>
+                  <Tabs defaultValue="grammar" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg p-1">
+                      <TabsTrigger value="grammar" className="rounded-md">Grammar</TabsTrigger>
+                      <TabsTrigger value="topics" className="rounded-md">Topics</TabsTrigger>
+                      <TabsTrigger value="skills" className="rounded-md">Skills</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="grammar" className="mt-4 space-y-2">
+                      {grammarTemplates.map((t, i) => (
+                        <Button key={i} variant="outline" className="w-full justify-start h-auto text-left border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg py-3" onClick={() => { handleTemplateInsert(t.content); setIsSidePanelOpen(false); }}>
+                          {t.title}
+                        </Button>
+                      ))}
+                    </TabsContent>
+                    <TabsContent value="topics" className="mt-4 space-y-2">
+                      {topicTemplates.map((t, i) => (
+                        <Button key={i} variant="outline" className="w-full justify-start h-auto text-left border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg py-3" onClick={() => { handleTemplateInsert(t.content); setIsSidePanelOpen(false); }}>
+                          {t.title}
+                        </Button>
+                      ))}
+                    </TabsContent>
+                    <TabsContent value="skills" className="mt-4 space-y-4">
+                      <Select onValueChange={setSelectedSkill}>
+                        <SelectTrigger className="bg-white dark:bg-gray-950 border-indigo-200 dark:border-indigo-700 rounded-lg">
+                          <SelectValue placeholder="Mahoratni tanlang" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-gray-950 border-indigo-200 dark:border-indigo-800 rounded-lg">
+                          <SelectItem value="speaking">Speaking</SelectItem>
+                          <SelectItem value="reading">Reading</SelectItem>
+                          <SelectItem value="writing">Writing</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {selectedSkill && (skillTemplates as any)[selectedSkill].map((template: any, index: number) => (
+                        <Button key={index} variant="outline" className="w-full justify-start h-auto text-left border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg py-3" onClick={() => { handleTemplateInsert(template.content); setIsSidePanelOpen(false); }}>
+                          {template.title}
+                        </Button>
+                      ))}
+                    </TabsContent>
+                  </Tabs>
+                </motion.div>
 
-                <div className={cn("p-2 border-b border-gray-200 dark:border-gray-800 flex flex-wrap gap-2 bg-white/95 dark:bg-gray-900/90 z-10 overflow-x-auto", isToolbarExpanded || !isFocusMode ? "block" : "hidden md:flex")}>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <ToolbarButton title="Chapga tekislash" isActive={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}>
-                      <AlignLeft size={16} />
-                    </ToolbarButton>
-                    <ToolbarButton title="Markazga tekislash" isActive={editor.isActive({ textAlign: "center" })} onClick={() => editor.chain().focus().setTextAlign("center").run()}>
-                      <AlignCenter size={16} />
-                    </ToolbarButton>
-                    <ToolbarButton title="O'ngga tekislash" isActive={editor.isActive({ textAlign: "right" })} onClick={() => editor.chain().focus().setTextAlign("right").run()}>
-                      <AlignRight size={16} />
-                    </ToolbarButton>
-                    <ToolbarButton title="Jadval qo'shish" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
-                      <Grid size={16} />
-                    </ToolbarButton>
-                    <ToolbarButton title="Gorizontal chiziq" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
-                      <Minus size={16} />
-                    </ToolbarButton>
-                    <ToolbarButton title="Iqtibos" isActive={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
-                      <Quote size={16} />
-                    </ToolbarButton>
-                  </div>
-                </div>
-
-                <div className="flex-grow p-4 overflow-y-auto">
+                {/* Editor Content */}
+                <div className={cn("flex-grow overflow-y-auto", isFocusMode ? "p-6 md:p-12" : "p-4 md:p-8")}>
                   <EditorContent editor={editor} />
                 </div>
+
+                {/* Floating Button for Side Panel on Mobile/Desktop */}
+                {!isFocusMode && (
+                  <motion.button
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="fixed bottom-20 right-6 md:bottom-8 md:right-8 bg-indigo-600 text-white p-4 rounded-full shadow-xl hover:bg-indigo-500 transition-all z-20"
+                    onClick={() => setIsSidePanelOpen(true)}
+                  >
+                    <BookOpen size={24} />
+                  </motion.button>
+                )}
               </>
             )}
           </motion.div>

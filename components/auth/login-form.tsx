@@ -10,12 +10,6 @@ import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
 import { motion } from "framer-motion"
 
-
-
-
-
-
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -23,15 +17,20 @@ import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useLogin } from "@/hooks/use-auth"
 
+// Translated Uzbek messages:
+// "Iltimos, to'g'ri email manzil kiriting" -> "Please enter a valid email address"
+// "Parol kamida 6 belgidan iborat bo'lishi kerak" -> "Password must be at least 6 characters"
+
 const loginSchema = z.object({
-  email: z.string().email("Iltimos, to'g'ri email manzil kiriting"),
-  password: z.string().min(6, "Parol kamida 6 belgidan iborat bo'lishi kerak"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const router = useRouter();
+  // Translated "Login or password mistake." for the default server error message.
   const [serverError, setServerError] = React.useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
@@ -49,6 +48,7 @@ export function LoginForm() {
         router.push('/dashboard');
       },
       onError: (error: any) => {
+        // Translated default error message: "Login or password mistake."
         const errorMessage = error.response?.data?.message || "Login or password mistake.";
         setServerError(errorMessage);
       },
@@ -79,7 +79,8 @@ export function LoginForm() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-700" /></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-900/60 px-2 text-slate-500">YOKI</span></div>
+              {/* Translated "YOKI" to "OR" */}
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-900/60 px-2 text-slate-500">OR</span></div>
             </div>
 
             {serverError && (
@@ -101,7 +102,7 @@ export function LoginForm() {
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                         <FormControl>
-                          <Input placeholder="siz@email.com" {...field} className="pl-10 bg-slate-800/50 border-slate-600 focus:border-violet-500 placeholder:text-slate-500" />
+                          <Input placeholder="you@email.com" {...field} className="pl-10 bg-slate-800/50 border-slate-600 focus:border-violet-500 placeholder:text-slate-500" />
                         </FormControl>
                       </div>
                       <FormMessage />
@@ -115,7 +116,8 @@ export function LoginForm() {
                     <FormItem>
                       <div className="flex justify-between items-center">
                         <FormLabel className="text-slate-300">Password</FormLabel>
-                        <Link href="#" className="text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors">Parolni unutdingizmi?</Link>
+                        {/* Translated "Parolni unutdingizmi?" to "Forgot password?" */}
+                        <Link href="#" className="text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors">Forgot password?</Link>
                       </div>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
@@ -129,14 +131,16 @@ export function LoginForm() {
                 />
                 <Button type="submit" className="w-full bg-violet-600 text-white hover:bg-violet-500 disabled:bg-slate-700" disabled={mutation.isPending}>
                   {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {mutation.isPending ? "please wait..." : "Login"}
+                  {mutation.isPending ? "Please wait..." : "Login"}
                 </Button>
               </form>
             </Form>
           </CardContent>
           <CardFooter className="justify-center text-sm">
-            <p className="text-slate-400">Do you have an account??{" "}
-              <Link href="/signup" className="font-semibold text-violet-400 hover:text-violet-300 transition-colors">Ro&apos;yxatdan o&apos;tish</Link>
+            {/* Translated "Do you have an account??" to "Don't have an account?" */}
+            <p className="text-slate-400">Don&apos;t have an account?{" "}
+              {/* Translated "Ro'yxatdan o'tish" to "Sign up" */}
+              <Link href="/signup" className="font-semibold text-violet-400 hover:text-violet-300 transition-colors">Sign up</Link>
             </p>
           </CardFooter>
         </Card>

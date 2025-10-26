@@ -1,14 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence, Variant, Variants } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import _ from "lodash";
 import { useNotes, useDeleteNote, useShareNote } from "@/hooks/use-note";
-import { useProfileByUsername } from "@/hooks/use-profile";
+import { useMyProfile, useProfileByUsername } from "@/hooks/use-profile";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
@@ -24,9 +23,9 @@ import rehypeRaw from "rehype-raw";
 import { Edit, Trash2, Share2, Search, CheckCircle2, AlertCircle, NotebookPen, Plus, BookOpen, Eye, Heart, MessageCircle, MoreHorizontal, Loader2, ListFilter, TrendingUp, TrendingDown, ChevronUp, ChevronDown } from "lucide-react";
 import { useUsers } from "@/hooks/use-users";
 import { User } from "@/types";
+import { NoteDetailModal } from "./note-detail-modal";
 
 // --- Interfaces ---
-
 interface Profile {
   id: number;
   firstName?: string;
@@ -63,7 +62,6 @@ const shareSchema = z.object({
 type ShareFormData = z.infer<typeof shareSchema>;
 
 // --- Hooks and Utilities ---
-
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   useEffect(() => {
@@ -75,7 +73,6 @@ function useDebounce<T>(value: T, delay: number): T {
 
 const getInitials = (profile?: Profile): string => {
   if (!profile) return "U";
-
   const name = profile.username || profile.firstName || "User";
   return name
     .split(/\s+/)
@@ -106,7 +103,6 @@ const stripHtml = (htmlString: string) => {
   return plainText.replace(/\s\s+/g, " ").trim();
 };
 
-
 const LoadingState = () => (
   <div className="flex justify-center items-center min-h-[60vh] bg-gray-50 dark:bg-gray-900">
     <Loader2 className="w-12 h-12 text-indigo-500 dark:text-indigo-400 animate-spin" />
@@ -125,7 +121,7 @@ const EmptyState = () => (
       </div>
       <div className="space-y-2">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Your Notebook is Empty</h2>
-        <p className="text-gray-600 dark:text-gray-300">Let&apos;s create your first note and bring your ideas to life!</p>
+        <p className="text-gray-600 dark:text-gray-300">Let’s create your first note and bring your ideas to life!</p>
       </div>
       <Button
         asChild
@@ -155,11 +151,10 @@ const DashboardStats = ({ stats }: { stats: any }) => {
 
   return (
     <motion.div
+      variants={{ show: { transition: { staggerChildren: 0.05 } } }}
       initial="hidden"
       animate="show"
-      variants={{ show: { transition: { staggerChildren: 0.1 } } }}
-      // Mobil uchun 2 qator, katta ekranlar uchun 4 qator
-      className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
+      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
     >
       {statItems.map((item, index) => {
         const isPositive = item.trend >= 0;
@@ -175,13 +170,11 @@ const DashboardStats = ({ stats }: { stats: any }) => {
             className="col-span-1"
           >
             <Card
-              // Padding p-4 ga kichraytirildi. Light/Dark fon berildi
               className={`p-4 rounded-xl bg-white dark:bg-slate-900 border ${item.border}
                            transition-all duration-500 h-full cursor-pointer
                            shadow-lg hover:shadow-xl hover:shadow-lg dark:hover:shadow-2xl
                            hover:${item.shadow} transform hover:-translate-y-1`}
             >
-
               <div className="flex justify-between items-center">
                 <div className="flex flex-col">
                   <div className="text-2xl font-extrabold text-gray-900 dark:text-slate-50">
@@ -189,12 +182,10 @@ const DashboardStats = ({ stats }: { stats: any }) => {
                   </div>
                   <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-slate-400 mt-0.5">{item.title}</p>
                 </div>
-
                 <div className={`p-2 rounded-lg ${item.bgColor}`}>
                   <item.icon className={`w-5 h-5 ${item.color}`} />
                 </div>
               </div>
-
               <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-800 flex items-center">
                 <div className={`flex items-center text-sm font-bold ${trendColor}`}>
                   <TrendIcon className="w-4 h-4 mr-1" />
@@ -208,21 +199,24 @@ const DashboardStats = ({ stats }: { stats: any }) => {
     </motion.div>
   );
 };
+
 const NoteCard = ({ note, onView, onDelete, onShare }: NoteCardProps) => {
+  const [isImageLoading, setIsImageLoading] = useState(false);
+
   return (
     <motion.div
       variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
-      whileHover={{ y: -3, scale: 1.01 }} // Engil hover effekt
+      whileHover={{ y: -3, scale: 1.01 }}
       layout
       exit={{ opacity: 0, y: 20, transition: { duration: 0.2 } }}
       className="group cursor-pointer"
       onClick={() => onView(note)}
     >
       <Card className="bg-white dark:bg-slate-900 rounded-xl shadow-lg hover:shadow-xl hover:shadow-indigo-500/20 dark:hover:shadow-violet-400/10 border border-gray-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-violet-600 transition-all duration-300 h-full flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between gap-4 p-4 pb-3"> {/* Padding ixchamlashtirildi */}
+        <CardHeader className="flex flex-row items-center justify-between gap-4 p-4 pb-3">
           <div className="flex items-center gap-3 overflow-hidden">
-            <Avatar className="h-9 w-9 border border-gray-300 dark:border-slate-700"> {/* Kichikroq Avatar */}
-              <AvatarImage src={note.profile?.avatar} alt={note.profile?.username} />
+            <Avatar className="h-9 w-9 border border-gray-300 dark:border-slate-700">
+              <AvatarImage src={note.profile?.avatar} alt={note.profile?.username} onLoad={() => setIsImageLoading(false)} onError={() => setIsImageLoading(false)} />
               <AvatarFallback className="bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-sm">{getInitials(note.profile)}</AvatarFallback>
             </Avatar>
             <div className="truncate">
@@ -241,7 +235,6 @@ const NoteCard = ({ note, onView, onDelete, onShare }: NoteCardProps) => {
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            {/* ... DropdownMenuContent o'zgarishsiz qoladi ... */}
             <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-900 dark:text-gray-100">
               <DropdownMenuItem asChild>
                 <Link
@@ -269,7 +262,7 @@ const NoteCard = ({ note, onView, onDelete, onShare }: NoteCardProps) => {
           </DropdownMenu>
         </CardHeader>
 
-        <CardContent className="flex-1 px-4 py-0"> {/* Padding ixchamlashtirildi */}
+        <CardContent className="flex-1 px-4 py-0">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 group-hover:text-indigo-600 dark:group-hover:text-violet-400 transition-colors truncate">
             {note.title}
           </h2>
@@ -278,7 +271,7 @@ const NoteCard = ({ note, onView, onDelete, onShare }: NoteCardProps) => {
           </div>
         </CardContent>
 
-        <CardFooter className="pt-3 pb-4 px-4 flex items-center justify-between"> {/* Padding ixchamlashtirildi */}
+        <CardFooter className="pt-3 pb-4 px-4 flex items-center justify-between">
           <div className="flex items-center gap-4 text-gray-500 dark:text-slate-400 text-xs">
             {[
               { Icon: Heart, value: note.totalLikes },
@@ -297,27 +290,7 @@ const NoteCard = ({ note, onView, onDelete, onShare }: NoteCardProps) => {
   );
 };
 
-const NoteDetailModal = ({ note, isOpen, onOpenChange }: { note: Note | null; isOpen: boolean; onOpenChange: (open: boolean) => void }) => {
-  if (!note) return null;
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="p-1 sm:max-w-[950px] max-h-[90vh] overflow-hidden rounded-xl">
-        <DialogHeader className="p-6 border-b border-gray-200 dark:border-gray-800">
-          <DialogTitle className="text-3xl font-bold text-gray-900 dark:text-gray-50 line-clamp-2">{note.title}</DialogTitle>
-          <DialogDescription className="text-gray-600 dark:text-gray-400 mt-1">
-            By <span className="font-medium text-indigo-500 dark:text-indigo-400">{note.profile?.username || "Anonymous"}</span> • Last updated{" "}
-            {formatRelativeTime(note.updatedAt)}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex-1 overflow-y-auto p-8 prose dark:prose-invert max-w-none prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-headings:text-gray-900 dark:prose-headings:text-gray-50 prose-a:text-indigo-500 dark:prose-a:text-indigo-400 prose-strong:text-gray-900 dark:prose-strong:text-gray-200 prose-code:text-rose-500 dark:prose-code:text-rose-400 prose-blockquote:border-indigo-500 dark:prose-blockquote:border-indigo-400">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-            {note.content || "*No content provided.*"}
-          </ReactMarkdown>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
+
 
 const ShareNoteDialog = ({
   note,
@@ -339,10 +312,10 @@ const ShareNoteDialog = ({
   const userNotFound = debouncedSearchTerm && !isFetchingProfile && !targetProfile;
   const { data: users, isLoading } = useUsers();
 
-  const onShareSubmit = (targetProfileId: number) => {
-    if (!note) return;
+  const onShareSubmit = (data: ShareFormData) => {
+    if (!note || !targetProfile) return;
     shareMutation.mutate(
-      { noteId: note.id, targetProfileId },
+      { noteId: note.id, targetProfileId: targetProfile.id },
       {
         onSuccess: () => {
           reset();
@@ -370,8 +343,7 @@ const ShareNoteDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(() => { })} className="space-y-4 pt-4">
-          {/* Search Input */}
+        <form onSubmit={handleSubmit(onShareSubmit)} className="space-y-4 pt-4">
           <div>
             <Label htmlFor="username" className="mb-2 block text-gray-700 dark:text-gray-300">
               Search Username
@@ -393,49 +365,40 @@ const ShareNoteDialog = ({
           </div>
 
           <div className="min-h-[200px] space-y-3">
-            {isLoading ? (
-              <div className="flex items-center gap-2 text-gray-500">
-                <Loader2 className="w-4 h-4 animate-spin" /> Loading users...
+            {isFetchingProfile && (
+              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                <Loader2 className="w-4 h-4 animate-spin" /> Loading...
               </div>
-            ) : users && users.length > 0 ? (
-              users?.map((user: User) => (
-                <motion.div
-                  key={user.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={user.profile.avatar || ""} />
-                      <AvatarFallback className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                        {getInitials(user.profile)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-200">
-                        {user.profile.username}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
-                    </div>
+            )}
+            {userNotFound && (
+              <p className="text-sm text-rose-500 dark:text-rose-400">User not found.</p>
+            )}
+            {targetProfile && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-3"
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={targetProfile.avatar || ""} />
+                    <AvatarFallback className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                      {getInitials(targetProfile)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-gray-200">{targetProfile.username}</p>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => onShareSubmit(user.profile.id)}
-                    disabled={shareMutation.isPending}
-                    className="bg-indigo-600 text-white dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600"
-                  >
-                    {shareMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Share2 className="w-4 h-4" />
-                    )}
-                  </Button>
-                </motion.div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No users found.</p>
+                </div>
+                <Button
+                  size="sm"
+                  type="submit"
+                  disabled={shareMutation.isPending}
+                  className="bg-indigo-600 text-white dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600"
+                >
+                  {shareMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+                </Button>
+              </motion.div>
             )}
           </div>
 
@@ -455,14 +418,17 @@ const ShareNoteDialog = ({
   );
 };
 
-
-
 export default function NotesListPage() {
   const { data: notes, isLoading: isNotesLoading } = useNotes();
   const { data: stats, isLoading: isStatsLoading } = useDashboardStats();
+  const { data: myProfile } = useMyProfile();
   const deleteMutation = useDeleteNote();
+  const [selectedNote, setSelectedNote] = useState<Note | any>(null);
+  const currentProfileId = myProfile?.profile?.id;
 
-  const [noteForView, setNoteForView] = useState<Note | null>(null);
+
+
+
   const [noteForShare, setNoteForShare] = useState<Note | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -470,6 +436,17 @@ export default function NotesListPage() {
   const handleDeleteNote = (id: number) => {
     deleteMutation.mutate(id);
   };
+  const handleCloseModal = () => {
+    setSelectedNote(null);
+  };
+
+  const handleToggleLike = useCallback((noteId: number) => {
+    // Since NoteDetailModal has its own toggleLike, but to update the list, we can refetch or optimistically update
+    // For simplicity, refetch shared notes after like in modal's onSuccess if needed, but since modal handles it internally, assume it's fine.
+    // If need to update list, pass a refetch prop or something, but for now, keep as is.
+  }, []);
+
+
 
   const filteredNotes = React.useMemo(() => {
     if (!notes) return [];
@@ -494,8 +471,7 @@ export default function NotesListPage() {
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 max-w-[1500px] mx-auto"> {/* Global padding kamaytirildi */}
-
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 max-w-[1500px] mx-auto">
         <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex-shrink-0">
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-50">My Notes</h1>
@@ -504,7 +480,7 @@ export default function NotesListPage() {
 
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" /> {/* Kichikroq ikon */}
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
               <Input
                 placeholder="Search notes..."
                 className="pl-9 w-full md:w-64 h-10 bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700 focus:border-indigo-500 dark:focus:border-violet-400"
@@ -556,7 +532,7 @@ export default function NotesListPage() {
                 <NoteCard
                   key={note.id}
                   note={note}
-                  onView={setNoteForView}
+                  onView={setSelectedNote}
                   onDelete={handleDeleteNote}
                   onShare={setNoteForShare}
                 />
@@ -564,10 +540,15 @@ export default function NotesListPage() {
             </AnimatePresence>
           </motion.div>
         )}
-
       </div>
 
-      <NoteDetailModal note={noteForView} isOpen={!!noteForView} onOpenChange={() => setNoteForView(null)} />
+      <NoteDetailModal
+        note={selectedNote}
+        isOpen={!!selectedNote}
+        onClose={handleCloseModal}
+        currentProfileId={currentProfileId}
+        onToggleLike={handleToggleLike}
+      />
       <ShareNoteDialog note={noteForShare} isOpen={!!noteForShare} onOpenChange={() => setNoteForShare(null)} />
     </TooltipProvider>
   );
