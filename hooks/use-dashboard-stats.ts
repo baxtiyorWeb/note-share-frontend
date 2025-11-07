@@ -7,7 +7,6 @@ interface DashboardStats {
   totalLikes: number;
   totalComments: number;
 }
-
 export const useDashboardStats = (): UseQueryResult<DashboardStats, Error> => {
   return useQuery({
     queryKey: ['dashboardStats'],

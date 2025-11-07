@@ -184,8 +184,8 @@ export default function ExplorePage() {
             <Globe className="w-5 h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-50">Kashfiyot</h1>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Jamiyatning eng yaxshi eslatmalarini toping</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-50">Explorer</h1>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Find the best community notes</p>
           </div>
         </motion.div>
 

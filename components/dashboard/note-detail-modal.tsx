@@ -375,7 +375,7 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({
   return (
     <TooltipProvider>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="p-0 max-w-[95vw]   sm:max-w-[900px] max-h-[90vh] rounded-xl ">
+        <DialogContent className="p-0 max-w-[95vw] rounded-md  sm:max-w-[900px] max-h-[90vh] rounded-xl ">
           <motion.div
             className="grid grid-cols-1 md:grid-cols-5 gap-0 h-full"
             variants={modalVariants}
@@ -383,8 +383,7 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({
             animate="visible"
             exit="hidden"
           >
-            {/* Note Content (Left Column on Desktop, Full Width on Mobile) */}
-            <div className="md:col-span-3 flex flex-col p-6 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900 md:border-r border-slate-200 dark:border-slate-800">
+            <div className="md:col-span-3 flex flex-col rounded-md p-6 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900 md:border-r border-slate-200 dark:border-slate-800">
               <div className="flex justify-between  items-start pb-4 border-b border-slate-200 dark:border-slate-800 mb-4 sticky top-0 bg-white dark:bg-slate-900 z-10">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
@@ -439,9 +438,9 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({
             </div>
 
             {/* Comments Section (Desktop Only) */}
-            <div className="hidden md:flex md:col-span-2 flex-col bg-slate-50 dark:bg-slate-800">
+            <div className="hidden pt-5 rounded-md md:flex md:col-span-2 flex-col bg-slate-50 dark:bg-slate-800">
               {/* Stats Block */}
-              <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-around items-center gap-4">
+              <div className="p-5  border-b border-slate-200 dark:border-slate-700 flex justify-around items-center gap-4">
                 <motion.button
                   onClick={(e) => {
                     e.stopPropagation();

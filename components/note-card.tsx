@@ -87,7 +87,6 @@ export const CompactNoteCard = ({
       className="group"
     >
       <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
-        {/* Header with Author Info */}
         <div className="p-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-700/50">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <Avatar className="h-10 w-10 flex-shrink-0">

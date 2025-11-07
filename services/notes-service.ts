@@ -16,6 +16,10 @@ export interface Note {
   viewsCount?: number;
   profile: Profile;
   createdAt: string;
+  totalLikes?: string;
+  totalComments?: string;
+  totalViews?: string;
+
 }
 export interface CreateNoteData {
   title: string;

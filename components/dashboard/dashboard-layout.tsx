@@ -30,7 +30,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </button>
           <ThemeToggle />
         </header>
-        <div className="hidden lg:block fixed top-6 right-8 z-50">
+        <div className="hidden lg:block fixed top-1 right-8 z-50">
           <ThemeToggle />
         </div>
 

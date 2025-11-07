@@ -213,7 +213,7 @@ const NoteCard = ({ note, onView, onDelete, onShare }: NoteCardProps) => {
       onClick={() => onView(note)}
     >
       <Card className="bg-white dark:bg-slate-900 rounded-xl shadow-lg hover:shadow-xl hover:shadow-indigo-500/20 dark:hover:shadow-violet-400/10 border border-gray-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-violet-600 transition-all duration-300 h-full flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between gap-4 p-4 pb-3">
+        <CardHeader className="flex flex-row items-center justify-between gap-4 ">
           <div className="flex items-center gap-3 overflow-hidden">
             <Avatar className="h-9 w-9 border border-gray-300 dark:border-slate-700">
               <AvatarImage src={note.profile?.avatar} alt={note.profile?.username} onLoad={() => setIsImageLoading(false)} onError={() => setIsImageLoading(false)} />
@@ -232,7 +232,7 @@ const NoteCard = ({ note, onView, onDelete, onShare }: NoteCardProps) => {
                 className="h-8 w-8 rounded-full text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
                 onClick={(e) => e.stopPropagation()}
               >
-                <MoreHorizontal className="w-4 h-4" />
+                <MoreHorizontal className="w-4 h-4 cursor-pointer" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-900 dark:text-gray-100">
@@ -262,7 +262,7 @@ const NoteCard = ({ note, onView, onDelete, onShare }: NoteCardProps) => {
           </DropdownMenu>
         </CardHeader>
 
-        <CardContent className="flex-1 px-4 py-0">
+        <CardContent className="flex-1  py-0">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 group-hover:text-indigo-600 dark:group-hover:text-violet-400 transition-colors truncate">
             {note.title}
           </h2>
@@ -271,7 +271,7 @@ const NoteCard = ({ note, onView, onDelete, onShare }: NoteCardProps) => {
           </div>
         </CardContent>
 
-        <CardFooter className="pt-3 pb-4 px-4 flex items-center justify-between">
+        <CardFooter className="pt-3  flex items-center justify-between">
           <div className="flex items-center gap-4 text-gray-500 dark:text-slate-400 text-xs">
             {[
               { Icon: Heart, value: note.totalLikes },
