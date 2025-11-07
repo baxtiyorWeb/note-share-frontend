@@ -12,6 +12,7 @@ import { useMyProfile } from "@/hooks/use-profile"
 import { logout } from "@/services/auth-service"
 import { useState } from "react"
 import { motion } from "framer-motion"
+import { ThemeToggle } from "../theme-toggle"
 
 const menuItems = [
   { icon: Globe, label: "Explore", href: "/dashboard/explore" },
@@ -96,7 +97,9 @@ export function Sidebar() {
           )
         })}
       </nav>
-
+      <div className="flex justify-start items-center px-4 py-2 space-y-1 ">
+        <ThemeToggle />
+      </div>
       <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-1">
         {(() => {
           const Icon = settingsMenuItem.icon;
