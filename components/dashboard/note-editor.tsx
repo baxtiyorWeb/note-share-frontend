@@ -7,7 +7,16 @@ import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
 import NextLink from "next/link";
+// Dinamik import uchun
+import dynamic from "next/dynamic";
 
+// Monaco Editor komponentini dinamik import qilamiz
+const MonacoEditorWrapper = dynamic(() => import("./../MonacoEditorWrapper"), {
+  ssr: false,
+  loading: () => <div className="min-h-[50vh] flex items-center justify-center dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700">Kod muharriri yuklanmoqda...</div>
+});
+
+// Qolgan importlar...
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -48,8 +57,10 @@ import {
   Sun,
   Focus,
   X,
+  Code,
 } from "lucide-react";
 
+// Qolgan Schema, Templates, ToolbarButton va regex helperlari o'zgarmasdan qoladi...
 const noteSchema = z.object({
   title: z.string().min(1, "Sarlavha kiritilishi shart"),
 });
@@ -89,11 +100,9 @@ const ToolbarButton = ({ isActive, onClick, children, title }: any) => (
   </Tooltip>
 );
 
-// regex helper
 const escapeRegExp = (str: string) =>
   str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// HTML ichida xatolarni highlight qilish
 const applyHighlights = (html: string, plainText: string, errors: any[]) => {
   let result = html;
 
@@ -102,7 +111,6 @@ const applyHighlights = (html: string, plainText: string, errors: any[]) => {
     if (!wrong.trim()) return;
 
     const safeWrong = escapeRegExp(wrong);
-    // har bir xato uchun faqat bitta marta almashtiramiz
     const regex = new RegExp(safeWrong, "");
     result = result.replace(
       regex,
@@ -112,6 +120,8 @@ const applyHighlights = (html: string, plainText: string, errors: any[]) => {
 
   return result;
 };
+
+// ***********************************************************************************
 
 export function NoteEditor() {
   const { id } = useParams();
@@ -123,10 +133,17 @@ export function NoteEditor() {
   const [isFocus, setIsFocus] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
 
+  // Rejim holati (false = Note Editor, true = Code Editor)
+  const [isCodeMode, setIsCodeMode] = useState(false);
+  // Code muharririning kontenti va default til
+  const [codeContent, setCodeContent] = useState("");
+  // YANGI: Monaco uchun til holati (Note Editor'dagi "language" dan farqli)
+  const [codeLanguage, setCodeLanguage] = useState("javascript");
+
   const [grammarErrors, setGrammarErrors] = useState<any[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [language, setLanguage] = useState("en-US");
+  const [language, setLanguage] = useState("en-US"); // Note Editor uchun til (Grammar Check)
 
   const [translation, setTranslation] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
@@ -171,18 +188,26 @@ export function NoteEditor() {
     },
   });
 
-  // LocalStorage draft yuklash
+  // Draftni yuklash (rejimni hisobga olgan holda)
   useEffect(() => {
     if (!editor) return;
     const saved = localStorage.getItem(`note-draft-${noteId || "new"}`);
     if (saved) {
-      const { title, content } = JSON.parse(saved);
+      const { title, content, isCode, codeLang } = JSON.parse(saved);
       setValue("title", title);
-      editor.commands.setContent(content);
+
+      if (isCode) {
+        setCodeContent(content);
+        setIsCodeMode(true);
+        setCodeLanguage(codeLang || "javascript"); // Saqlangan tilni yuklash
+      } else {
+        editor.commands.setContent(content);
+        setIsCodeMode(false);
+      }
     }
   }, [editor, noteId, setValue]);
 
-  // Draftni avtomatik saqlash
+  // Draftni avtomatik saqlash (rejimni hisobga olgan holda)
   useEffect(() => {
     if (!editor) return;
     const handler = setTimeout(() => {
@@ -191,18 +216,31 @@ export function NoteEditor() {
         "";
       localStorage.setItem(
         `note-draft-${noteId || "new"}`,
-        JSON.stringify({ title, content: editor.getHTML() }),
+        JSON.stringify({
+          title,
+          content: isCodeMode ? codeContent : editor.getHTML(),
+          isCode: isCodeMode,
+          codeLang: codeLanguage, // Code tilini saqlash
+        }),
       );
     }, 1000);
     return () => clearTimeout(handler);
-  }, [editor, noteId]);
+  }, [editor, noteId, isCodeMode, codeContent, codeLanguage]);
 
-  // Note ni backenddan yuklash
+  // Note ni backenddan yuklash (rejimni hisobga olgan holda)
   useEffect(() => {
     if (!editor) return;
-    if (isEdit && note && editor.isEmpty) {
+    if (isEdit && note) {
       setValue("title", note.title);
-      editor.commands.setContent(note.content || "");
+      // Backendda note.is_code_mode va note.code_language maydoni mavjud deb faraz qilinadi
+      if (note.is_code_mode) {
+        setIsCodeMode(true);
+        setCodeContent(note.content || "");
+        setCodeLanguage(note.code_language || "javascript"); // Backenddan tilni yuklash
+      } else {
+        setIsCodeMode(false);
+        editor.commands.setContent(note.content || "");
+      }
     }
   }, [note, isEdit, setValue, editor]);
 
@@ -220,10 +258,36 @@ export function NoteEditor() {
       .replace(/<\/span>/g, "");
   };
 
+  // Rejimni almashtirish funksiyasi
+  const toggleCodeMode = () => {
+    // Grammatika xatolarini tozalaymiz
+    setGrammarErrors([]);
+
+    // Kontentni bir rejimdan ikkinchisiga o'tkazish
+    if (isCodeMode) {
+      // Code -> Note: Code kontentini Tiptapga yuklash
+      editor?.commands.setContent(codeContent);
+    } else {
+      // Note -> Code: Tiptap kontentini codeContentga yuklash
+      setCodeContent(getCleanHtml());
+    }
+
+    setIsCodeMode(!isCodeMode);
+  };
+
   const handleSave = (data: NoteFormData) => {
     if (!editor) return;
-    const cleanContent = getCleanHtml();
-    const payload = { title: data.title, content: cleanContent };
+
+    const contentToSave = isCodeMode ? codeContent : getCleanHtml();
+
+    // Payloadga is_code_mode va code_language holatini qo'shamiz
+    const payload = {
+      title: data.title,
+      content: contentToSave,
+      is_code_mode: isCodeMode,
+      code_language: isCodeMode ? codeLanguage : null, // Faqat Code rejimida saqlaymiz
+    };
+
     const mutation = isEdit ? updateMutation : createMutation;
     const args = isEdit ? { id: Number(noteId), data: payload } : payload;
 
@@ -247,6 +311,9 @@ export function NoteEditor() {
     reader.readAsDataURL(file);
     e.target.value = "";
   };
+
+  // ... Qolgan AI funksiyalari (checkGrammar, autoFixAll, handleTranslate, checkPromptGrammar) o'zgarmasdan qoladi ...
+  // checkGrammar faqat Note rejimida ishlaydi, shuning uchun o'zgarishsiz qoldiramiz.
 
   // 🧠 Asosiy AI grammar check (editor matni uchun)
   const checkGrammar = async () => {
@@ -327,7 +394,7 @@ export function NoteEditor() {
   // 🌍 Tarjima (en -> uz)
   const handleTranslate = async () => {
     if (!editor) return;
-    const text = editor.getText().trim();
+    const text = isCodeMode ? codeContent.trim() : editor.getText().trim();
     if (!text) {
       toast.error("Tarjima uchun matn yo‘q");
       return;
@@ -399,6 +466,8 @@ export function NoteEditor() {
     setIsTemplatesOpen(false);
   };
 
+  // ... qolgan funksiyalar ...
+
   if (isNoteLoading && isEdit) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -442,23 +511,49 @@ export function NoteEditor() {
             </div>
 
             <div className="flex items-center gap-2">
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="border border-indigo-200 dark:border-indigo-700 rounded-md px-2 py-1 text-sm dark:bg-gray-900 dark:text-white"
-              >
-                <option value="en-US">English (US)</option>
-                <option value="en-GB">English (UK)</option>
-                <option value="ru-RU">Русский</option>
-                <option value="de-DE">Deutsch</option>
-                <option value="uz">O‘zbek</option>
-              </select>
+
+              {/* Note Editor tili (Grammar Check) yoki Code Editor tili selectori */}
+              {isCodeMode ? (
+                <select
+                  value={codeLanguage}
+                  onChange={(e) => setCodeLanguage(e.target.value)}
+                  className="border border-indigo-200 dark:border-indigo-700 rounded-md px-2 py-1 text-sm dark:bg-gray-900 dark:text-white"
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="typescript">TypeScript</option>
+                  <option value="html">HTML</option>
+                  <option value="css">CSS</option>
+                  <option value="json">JSON</option>
+                  <option value="markdown">Markdown</option>
+                  <option value="python">Python</option>
+                  <option value="java">Java</option>
+                  <option value="csharp">C#</option>
+                </select>
+              ) : (
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="border border-indigo-200 dark:border-indigo-700 rounded-md px-2 py-1 text-sm dark:bg-gray-900 dark:text-white"
+                >
+                  <option value="en-US">English (US)</option>
+                  <option value="en-GB">English (UK)</option>
+                  <option value="ru-RU">Русский</option>
+                  <option value="de-DE">Deutsch</option>
+                  <option value="uz">O‘zbek</option>
+                </select>
+              )}
+
 
               <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)}>
                 {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </Button>
               <Button variant="ghost" size="icon" onClick={() => setIsFocus(!isFocus)}>
                 {isFocus ? <X className="w-5 h-5" /> : <Focus className="w-5 h-5" />}
+              </Button>
+
+              {/* Rejim almashtirish tugmasi */}
+              <Button variant="ghost" size="icon" onClick={toggleCodeMode} title={isCodeMode ? "Note Editorga o‘tish" : "Code Editorga o‘tish"}>
+                {isCodeMode ? <BookOpen className="w-5 h-5 text-indigo-600" /> : <Code className="w-5 h-5" />}
               </Button>
             </div>
           </div>
@@ -473,37 +568,52 @@ export function NoteEditor() {
             <div className="flex flex-col md:flex-row gap-4">
               {/* EDITOR SIDE */}
               <div className="flex-1">
-                {editor && <EditorContent editor={editor} />}
 
-                {/* AI LOADER */}
-                <AnimatePresence>
-                  {isAiLoading && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="mt-4"
-                    >
-                      <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-2 rounded-full overflow-hidden">
-                        <motion.div
-                          className="h-2 bg-white/70"
-                          animate={{ width: `${progress}%` }}
-                          transition={{ ease: "easeOut", duration: 0.3 }}
-                        />
-                      </div>
-                      <motion.p
-                        className="text-center mt-2 text-indigo-700 dark:text-indigo-300 font-medium"
-                        animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
+                {/* Muharrirni rejimga qarab ko'rsatish */}
+                {isCodeMode ? (
+                  // Dasturchi Rejimi: Monaco Editor
+                  <MonacoEditorWrapper
+                    value={codeContent}
+                    onChange={setCodeContent}
+                    language={codeLanguage}
+                    isDark={isDark}
+                  />
+                ) : (
+                  // Eslatma Rejimi: Tiptap Editor
+                  editor && <EditorContent editor={editor} />
+                )}
+
+                {/* AI LOADER faqat Note rejimida */}
+                {!isCodeMode && (
+                  <AnimatePresence>
+                    {isAiLoading && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="mt-4"
                       >
-                        AI tekshiruv → {Math.round(progress)}%
-                      </motion.p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                        <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-2 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-2 bg-white/70"
+                            animate={{ width: `${progress}%` }}
+                            transition={{ ease: "easeOut", duration: 0.3 }}
+                          />
+                        </div>
+                        <motion.p
+                          className="text-center mt-2 text-indigo-700 dark:text-indigo-300 font-medium"
+                          animate={{ opacity: [0.5, 1, 0.5] }}
+                          transition={{ repeat: Infinity, duration: 2 }}
+                        >
+                          AI tekshiruv → {Math.round(progress)}%
+                        </motion.p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                )}
 
-                {/* GRAMMAR ERRORS LIST */}
-                {grammarErrors.length > 0 && (
+                {/* GRAMMAR ERRORS LIST faqat Note rejimida */}
+                {!isCodeMode && grammarErrors.length > 0 && (
                   <div className="mt-6 p-3 bg-red-50 dark:bg-red-900/30 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <p className="font-semibold text-red-600 dark:text-red-400">
@@ -565,7 +675,7 @@ export function NoteEditor() {
                     </p>
                   ) : (
                     <p className="text-xs text-gray-500">
-                      Matnni editorga yozing va yuqoridagi tugmani bosing.
+                      Matnni muharrirga yozing va yuqoridagi tugmani bosing.
                     </p>
                   )}
                 </div>
@@ -616,8 +726,8 @@ export function NoteEditor() {
           </div>
         </main>
 
-        {/* TOOLBAR */}
-        {editor && (
+        {/* TOOLBAR faqat Eslatma Rejimida */}
+        {editor && !isCodeMode && (
           <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t border-indigo-200 dark:border-indigo-800 p-2 flex flex-wrap gap-1 justify-center z-20">
             <ToolbarButton
               isActive={editor.isActive("bold")}
@@ -721,11 +831,29 @@ export function NoteEditor() {
               )}
             </Button>
 
-            {/* SAVE button */}
+            {/* SAVE button (Note Mode) */}
             <Button
               onClick={handleSubmit(handleSave)}
               disabled={createMutation.isPending || updateMutation.isPending}
               className="bg-indigo-600 text-white hover:bg-indigo-500 h-10 px-4 ml-2"
+            >
+              {createMutation.isPending || updateMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Saqlash
+            </Button>
+          </div>
+        )}
+
+        {/* SAVE button Code Rejimida */}
+        {isCodeMode && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t border-indigo-200 dark:border-indigo-800 p-2 flex justify-end z-20">
+            <Button
+              onClick={handleSubmit(handleSave)}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="bg-indigo-600 text-white hover:bg-indigo-500 h-10 px-4"
             >
               {createMutation.isPending || updateMutation.isPending ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
