@@ -197,7 +197,7 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({
       }
 
       addCommentMutation.mutate(
-        { noteId: note.id, text },
+        { noteId: note?.id, text },
         {
           onSuccess: () => {
             setCommentText("");
@@ -208,7 +208,7 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({
         }
       );
     },
-    [commentText, currentProfileId, addCommentMutation, note.id, refetch]
+    [commentText, currentProfileId, addCommentMutation, note?.id, refetch]
   );
 
   const handleDeleteComment = useCallback(
@@ -228,8 +228,8 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({
   );
 
   const handleToggleLike = useCallback(() => {
-    onToggleLike(note.id);
-  }, [note.id, onToggleLike]);
+    onToggleLike(note?.id);
+  }, [note?.id, onToggleLike]);
 
   return (
     <TooltipProvider>
@@ -285,7 +285,7 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({
                 </div>
 
                 {/* Comments Sidebar */}
-                <div className="md:col-span-2 flex flex-col bg-slate-50 dark:bg-slate-800">
+                <div className="md:col-span-2 overflow-scroll max-h-[80vh] flex flex-col bg-slate-50 dark:bg-slate-800">
                   <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                     <h3 className="font-semibold text-slate-900 dark:text-slate-100">Izohlar</h3>
                     <span className="text-sm text-slate-600 dark:text-slate-400">{comments.length}</span>
