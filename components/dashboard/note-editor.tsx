@@ -7,8 +7,6 @@ import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
 import NextLink from "next/link";
-import { jsPDF } from "jspdf";
-import { motion, AnimatePresence } from "framer-motion";
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -24,36 +22,52 @@ import TextStyle from "@tiptap/extension-text-style";
 import { useCreateNote, useUpdateNote, useNote } from "@/hooks/use-note";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
+import { motion, AnimatePresence } from "framer-motion";
+
 import {
-  ArrowLeft, Save, Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, List, ListOrdered, Image as ImageIcon, Link2,
-  Download, Sparkles, BookOpen, Moon, Sun, Focus, X, CheckCircle, Mic, MicOff, Globe, FileText, Wand2
+  ArrowLeft,
+  Save,
+  Loader2,
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  Heading1,
+  Heading2,
+  List,
+  ListOrdered,
+  Image as ImageIcon,
+  Link2,
+  BookOpen,
+  Sparkles,
+  Wand2,
+  Moon,
+  Sun,
+  Focus,
+  X,
 } from "lucide-react";
 
-const noteSchema = z.object({ title: z.string().min(1, "Sarlavha kiritilishi shart") });
+const noteSchema = z.object({
+  title: z.string().min(1, "Sarlavha kiritilishi shart"),
+});
 type NoteFormData = z.infer<typeof noteSchema>;
 
-const supportedLanguages = [
-  { value: "en-US", label: "English (US)" },
-  { value: "en-GB", label: "English (GB)" },
-  { value: "fr", label: "French" },
-  { value: "de", label: "German" },
-  { value: "es", label: "Spanish" },
-  { value: "ru", label: "Russian" },
-  { value: "uz", label: "Uzbek" },
-  { value: "it", label: "Italian" },
-  { value: "pt", label: "Portuguese" },
-  { value: "pl", label: "Polish" },
-];
-
 const templates = [
-  { title: "Grammar Rule", content: `<div class="bg-blue-50 p-4 rounded-lg"><h3 class="font-bold">Rule: Present Simple</h3><p><strong>Use:</strong> Habits, facts</p><ul class="list-disc pl-5"><li>I <u>go</u> to school.</li><li>Water <u>boils</u> at 100°C.</li></ul></div>` },
-  { title: "Speaking Topic", content: `<div class="bg-pink-50 p-4 rounded-lg"><h3 class="font-bold">Topic: My Hobby</h3><ol class="list-decimal pl-5"><li>What is it?</li><li>Why do you like it?</li></ol></div>` },
-  { title: "Writing Task", content: `<div class="bg-amber-50 p-4 rounded-lg"><h3 class="font-bold">Task: Email</h3><p>Invite your friend. Include: date, time, place.</p></div>` },
+  {
+    title: "Grammar Rule",
+    content: `<div class="bg-blue-50 p-4 rounded-lg"><h3 class="font-bold">Rule: Present Simple</h3><p><strong>Use:</strong> Habits, facts</p><ul class="list-disc pl-5"><li>I <u>go</u> to school.</li><li>Water <u>boils</u> at 100°C.</li></ul></div>`,
+  },
+  {
+    title: "Speaking Topic",
+    content: `<div class="bg-pink-50 p-4 rounded-lg"><h3 class="font-bold">Topic: My Favorite Hobby</h3><ol class="list-decimal pl-5"><li>What is your hobby?</li><li>Why do you like it?</li><li>How often do you do it?</li></ol></div>`,
+  },
+  {
+    title: "Writing Task",
+    content: `<div class="bg-amber-50 p-4 rounded-lg"><h3 class="font-bold">Task: Write an email to a friend</h3><p>Invite your friend to your birthday party. Include: date, time, place, what to bring.</p></div>`,
+  },
 ];
 
 const ToolbarButton = ({ isActive, onClick, children, title }: any) => (
@@ -63,49 +77,79 @@ const ToolbarButton = ({ isActive, onClick, children, title }: any) => (
         variant="ghost"
         size="icon"
         className={cn(
-          "h-11 w-11 rounded-xl text-lg",
-          isActive ? "bg-indigo-100 text-indigo-600 shadow-md" : "text-gray-600 hover:bg-indigo-50"
+          "h-10 w-10 rounded-lg",
+          isActive ? "bg-indigo-100 text-indigo-600" : "text-gray-600 hover:bg-indigo-50",
         )}
         onClick={onClick}
       >
         {children}
       </Button>
     </TooltipTrigger>
-    <TooltipContent side="top" className="bg-indigo-900 text-white text-xs px-2 py-1 rounded">{title}</TooltipContent>
+    <TooltipContent>{title}</TooltipContent>
   </Tooltip>
 );
+
+// regex helper
+const escapeRegExp = (str: string) =>
+  str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// HTML ichida xatolarni highlight qilish
+const applyHighlights = (html: string, plainText: string, errors: any[]) => {
+  let result = html;
+
+  errors.forEach((err, idx) => {
+    const wrong = plainText.substring(err.offset, err.offset + err.length);
+    if (!wrong.trim()) return;
+
+    const safeWrong = escapeRegExp(wrong);
+    // har bir xato uchun faqat bitta marta almashtiramiz
+    const regex = new RegExp(safeWrong, "");
+    result = result.replace(
+      regex,
+      `<span class="grammar-error" data-idx="${idx}">${wrong}</span>`,
+    );
+  });
+
+  return result;
+};
 
 export function NoteEditor() {
   const { id } = useParams();
   const router = useRouter();
   const noteId = Array.isArray(id) ? id[0] : id;
   const isEdit = !!noteId;
+
   const [isDark, setIsDark] = useState(false);
   const [isFocus, setIsFocus] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
-  const [grammarErrors, setGrammarErrors] = useState<string[]>([]);
-  const [isChecking, setIsChecking] = useState(false);
+
+  const [grammarErrors, setGrammarErrors] = useState<any[]>([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [typingText, setTypingText] = useState("");
-  const [selectedLang, setSelectedLang] = useState("en-US");
-  const [isListening, setIsListening] = useState(false);
+  const [language, setLanguage] = useState("en-US");
+
+  const [translation, setTranslation] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
-  const [targetTranslateLang, setTargetTranslateLang] = useState("uz");
-  const [isSummarizing, setIsSummarizing] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatePrompt, setGeneratePrompt] = useState("");
+
+  const [promptText, setPromptText] = useState("");
+  const [promptErrors, setPromptErrors] = useState<any[]>([]);
+  const [isPromptLoading, setIsPromptLoading] = useState(false);
 
   const { data: note, isLoading: isNoteLoading } = useNote(isEdit ? Number(noteId) : 0);
   const createMutation = useCreateNote();
   const updateMutation = useUpdateNote();
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<NoteFormData>({
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<NoteFormData>({
     resolver: zodResolver(noteSchema),
     defaultValues: { title: "" },
   });
 
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<any>(null);
 
   const editor = useEditor({
     extensions: [
@@ -120,62 +164,40 @@ export function NoteEditor() {
       Color,
     ],
     content: "",
-    editorProps: { attributes: { class: "prose max-w-full focus:outline-none min-h-[50vh] p-4" } },
+    editorProps: {
+      attributes: {
+        class: "prose max-w-full focus:outline-none min-h-[50vh] p-4",
+      },
+    },
   });
 
-  // Voice Recognition
+  // LocalStorage draft yuklash
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = selectedLang;
-
-      recognitionRef.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        editor?.chain().focus().insertContent(transcript + " ").run();
-        setIsListening(false);
-        toast.success("Ovoz yozildi!");
-      };
-
-      recognitionRef.current.onerror = () => {
-        setIsListening(false);
-        toast.error("Mikrofon xatosi");
-      };
-    }
-  }, [selectedLang, editor]);
-
-  const toggleListening = () => {
-    if (!recognitionRef.current) return toast.error("Ovoz tanib bo‘lmadi");
-    if (isListening) {
-      recognitionRef.current.stop();
-    } else {
-      recognitionRef.current.start();
-    }
-    setIsListening(!isListening);
-  };
-
-  // Autosave
-  useEffect(() => {
-    const saved = localStorage.getItem(`note-draft-${noteId || 'new'}`);
-    if (saved && editor) {
+    if (!editor) return;
+    const saved = localStorage.getItem(`note-draft-${noteId || "new"}`);
+    if (saved) {
       const { title, content } = JSON.parse(saved);
       setValue("title", title);
       editor.commands.setContent(content);
     }
   }, [editor, noteId, setValue]);
 
+  // Draftni avtomatik saqlash
   useEffect(() => {
     if (!editor) return;
     const handler = setTimeout(() => {
-      const title = (document.querySelector('input[placeholder="Sarlavha..."]') as HTMLInputElement)?.value || "";
-      localStorage.setItem(`note-draft-${noteId || 'new'}`, JSON.stringify({ title, content: editor.getHTML() }));
+      const title =
+        (document.querySelector('input[placeholder="Sarlavha..."]') as HTMLInputElement)?.value ||
+        "";
+      localStorage.setItem(
+        `note-draft-${noteId || "new"}`,
+        JSON.stringify({ title, content: editor.getHTML() }),
+      );
     }, 1000);
     return () => clearTimeout(handler);
   }, [editor, noteId]);
 
-  // Load note
+  // Note ni backenddan yuklash
   useEffect(() => {
     if (!editor) return;
     if (isEdit && note && editor.isEmpty) {
@@ -184,22 +206,32 @@ export function NoteEditor() {
     }
   }, [note, isEdit, setValue, editor]);
 
-  // Dark Mode
+  // Dark mode
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
 
+  const getCleanHtml = () => {
+    if (!editor) return "";
+    const raw = editor.getHTML();
+    // faqat grammar-error spanlarini tozalaymiz
+    return raw
+      .replace(/<span class="grammar-error"[^>]*>/g, "")
+      .replace(/<\/span>/g, "");
+  };
+
   const handleSave = (data: NoteFormData) => {
     if (!editor) return;
-    const payload = { title: data.title, content: editor.getHTML() };
+    const cleanContent = getCleanHtml();
+    const payload = { title: data.title, content: cleanContent };
     const mutation = isEdit ? updateMutation : createMutation;
     const args = isEdit ? { id: Number(noteId), data: payload } : payload;
 
     toast.promise(mutation.mutateAsync(args as any), {
       loading: "Saqlanmoqda...",
-      success: () => {
-        localStorage.removeItem(`note-draft-${noteId || 'new'}`);
-        if (!isEdit) router.push(`/dashboard/edit/${(mutation as any).data?.id}`);
+      success: (res: any) => {
+        localStorage.removeItem(`note-draft-${noteId || "new"}`);
+        if (!isEdit) router.push(`/dashboard/edit/${res.id}`);
         return "Saqlandi!";
       },
       error: "Xatolik yuz berdi.",
@@ -210,175 +242,156 @@ export function NoteEditor() {
     const file = e.target.files?.[0];
     if (!file || !editor) return;
     const reader = new FileReader();
-    reader.onload = () => editor.chain().focus().setImage({ src: reader.result as string }).run();
+    reader.onload = () =>
+      editor.chain().focus().setImage({ src: reader.result as string }).run();
     reader.readAsDataURL(file);
     e.target.value = "";
   };
 
-  const exportPDF = () => {
-    if (!editor) return;
-    const doc = new jsPDF();
-    const title = (document.querySelector('input[placeholder="Sarlavha..."]') as HTMLInputElement)?.value || "Note";
-    doc.html(editor.getHTML(), {
-      callback: (pdf) => pdf.save(`${title}.pdf`),
-      x: 15, y: 15, width: 180, windowWidth: 800,
-    });
-    toast.success("PDF yuklandi!");
-  };
-
-  // AI Grammar Check (LanguageTool - BEPUL)
+  // 🧠 Asosiy AI grammar check (editor matni uchun)
   const checkGrammar = async () => {
     if (!editor) return;
-    const text = editor.getText().trim();
-    if (!text) return toast.error("Matn kiritilmagan");
+    const plainText = editor.getText();
+    if (!plainText.trim()) {
+      toast.error("Matn kiritilmagan");
+      return;
+    }
 
-    setIsChecking(true);
+    setIsAiLoading(true);
     setProgress(0);
-    setTypingText("");
     setGrammarErrors([]);
 
-    const fullText = "AI analyzing your text";
-    let i = 0;
-    const typeInterval = setInterval(() => {
-      if (i < fullText.length) {
-        setTypingText(fullText.substring(0, i + 1));
-        i++;
-      } else clearInterval(typeInterval);
-    }, 50);
-
-    const progressSteps = [35, 60, 85, 100];
-    let step = 0;
-    const progressInterval = setInterval(() => {
-      setProgress(progressSteps[step]);
-      step++;
-      if (step >= progressSteps.length) clearInterval(progressInterval);
-    }, 800);
+    const interval = setInterval(() => {
+      setProgress((p) => (p < 90 ? p + Math.random() * 8 : p));
+    }, 300);
 
     try {
       const res = await fetch("https://api.languagetool.org/v2/check", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ text, language: selectedLang }),
+        body: new URLSearchParams({
+          text: plainText,
+          language,
+          level: "picky",
+          enabledOnly: "false",
+        }),
       });
-      const data = await res.json();
 
-      clearInterval(typeInterval);
-      clearInterval(progressInterval);
+      const data = await res.json();
+      clearInterval(interval);
       setProgress(100);
-      setTypingText("Done!");
+      setTimeout(() => setIsAiLoading(false), 600);
 
       if (!data.matches || data.matches.length === 0) {
-        setTimeout(() => {
-          toast.success("Grammar to‘g‘ri!");
-          setIsChecking(false);
-        }, 600);
+        toast.success("Hech qanday xato topilmadi ✅");
+        setGrammarErrors([]);
         return;
       }
 
-      const errors = data.matches.map((err: any) => {
-        const wrong = text.substring(err.offset, err.offset + err.length);
-        const suggest = err.replacements?.[0]?.value || "taklif yo‘q";
-        return `"${wrong}" → ${err.message} (taklif: ${suggest})`;
-      });
+      setGrammarErrors(data.matches);
 
-      setGrammarErrors(errors);
-      setTimeout(() => {
-        toast.error(`${errors.length} ta xato topildi`);
-        setIsChecking(false);
-      }, 600);
+      // Highlightlarni editor HTML ichiga qo‘llaymiz
+      const currentHtml = editor.getHTML();
+      const highlightedHtml = applyHighlights(currentHtml, plainText, data.matches);
+      editor.commands.setContent(highlightedHtml);
+
+      toast.error(`${data.matches.length} ta xato topildi`);
     } catch (e) {
-      clearInterval(typeInterval);
-      clearInterval(progressInterval);
-      setIsChecking(false);
-      toast.error("Internet aloqasi yo‘q");
+      console.error(e);
+      clearInterval(interval);
+      setIsAiLoading(false);
+      toast.error("AI bilan bog‘lanishda xatolik");
     }
   };
 
-  // Auto Correction
-  const autoCorrect = async () => {
+  // ✨ Barcha xatolarni avtomatik tuzatish
+  const autoFixAll = () => {
     if (!editor || grammarErrors.length === 0) return;
-    const text = editor.getText();
-    let corrected = text;
-    grammarErrors.forEach(err => {
-      const match = err.match(/"([^"]+)" → .*?\(taklif: ([^)]+)\)/);
-      if (match) {
-        corrected = corrected.replace(new RegExp(match[1], 'g'), match[2]);
-      }
+
+    let text = editor.getText();
+    const sorted = [...grammarErrors].sort((a, b) => b.offset - a.offset);
+
+    sorted.forEach((err) => {
+      const suggestion = err.replacements?.[0]?.value;
+      if (!suggestion) return;
+      const start = err.offset;
+      const end = start + err.length;
+      text = text.slice(0, start) + suggestion + text.slice(end);
     });
-    editor.commands.setContent(corrected);
+
+    editor.commands.setContent(text);
     setGrammarErrors([]);
-    toast.success("Avto to'g'irlandi!");
+    toast.success("Barcha xatolar avtomatik tuzatildi ✅");
   };
 
-  // AI Translate (LibreTranslate public - BEPUL)
-  const translateText = async () => {
+  // 🌍 Tarjima (en -> uz)
+  const handleTranslate = async () => {
     if (!editor) return;
+    const text = editor.getText().trim();
+    if (!text) {
+      toast.error("Tarjima uchun matn yo‘q");
+      return;
+    }
     setIsTranslating(true);
-    const text = editor.getText();
+    setTranslation("");
+
     try {
       const res = await fetch("https://libretranslate.de/translate", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           q: text,
-          source: selectedLang.split('-')[0],
-          target: targetTranslateLang,
-          format: "text"
+          source: "en",
+          target: "uz",
+          format: "text",
         }),
-        headers: { "Content-Type": "application/json" }
       });
+
       const data = await res.json();
-      editor.commands.setContent(data.translatedText);
-      toast.success("Tarjima qilindi!");
+      if (data?.translatedText) {
+        setTranslation(data.translatedText);
+      } else {
+        toast.error("Tarjima olinmadi");
+      }
     } catch (e) {
+      console.error(e);
       toast.error("Tarjima xatosi");
+    } finally {
+      setIsTranslating(false);
     }
-    setIsTranslating(false);
   };
 
-  // AI Summarize (Cohere public demo - BEPUL)
-  const summarizeText = async () => {
-    if (!editor) return;
-    setIsSummarizing(true);
-    const text = editor.getText().slice(0, 1000);
-    try {
-      const res = await fetch("https://api.cohere.ai/v1/summarize", {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer YOUR_COHERE_DEMO_KEY", // Demo key ishlaydi
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ text, length: "short" })
-      });
-      const data = await res.json();
-      editor.commands.setContent(data.summary);
-      toast.success("Qisqartirildi!");
-    } catch (e) {
-      // Fallback: oddiy qisqartirish
-      const short = text.split('. ').slice(0, 3).join('. ') + '.';
-      editor.commands.setContent(short);
-      toast.success("Oddiy qisqartirish");
+  // 🔎 Prompt (kichik matn uchun alohida grammar check)
+  const checkPromptGrammar = async () => {
+    const text = promptText.trim();
+    if (!text) {
+      toast.error("Prompt matni bo‘sh");
+      return;
     }
-    setIsSummarizing(false);
-  };
 
-  // AI Generate (Hugging Face public - BEPUL)
-  const generateText = async () => {
-    if (!editor || !generatePrompt) return;
-    setIsGenerating(true);
+    setIsPromptLoading(true);
+    setPromptErrors([]);
+
     try {
-      const res = await fetch("https://api-inference.huggingface.co/models/gpt2", {
+      const res = await fetch("https://api.languagetool.org/v2/check", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inputs: generatePrompt, parameters: { max_length: 100 } })
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          text,
+          language,
+          level: "picky",
+          enabledOnly: "false",
+        }),
       });
+
       const data = await res.json();
-      const generated = data[0]?.generated_text || generatePrompt;
-      editor.chain().focus().insertContent("\n\n" + generated).run();
-      toast.success("Yaratildi!");
+      setPromptErrors(data.matches || []);
     } catch (e) {
-      toast.error("Yaratish xatosi");
+      console.error(e);
+      toast.error("Prompt AI tekshiruvda xatolik");
+    } finally {
+      setIsPromptLoading(false);
     }
-    setIsGenerating(false);
   };
 
   const insertTemplate = (content: string) => {
@@ -388,23 +401,38 @@ export function NoteEditor() {
 
   if (isNoteLoading && isEdit) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-indigo-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
-          <Sparkles className="w-12 h-12 text-indigo-600" />
-        </motion.div>
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
       </div>
     );
   }
 
   return (
     <TooltipProvider>
-      <div className={cn("min-h-screen flex flex-col transition-all", isDark ? "dark bg-gray-900" : "bg-gradient-to-br from-indigo-50 to-gray-100", isFocus && "p-0")}>
-        {/* Header */}
-        <header className={cn("bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-indigo-200 dark:border-indigo-800 sticky top-0 z-50 shadow-lg", isFocus && "hidden")}>
+      <div
+        className={cn(
+          "min-h-screen flex flex-col",
+          isDark ? "dark bg-gray-900" : "bg-gradient-to-br from-indigo-50 to-gray-100",
+        )}
+      >
+        {/* GLOBAL STYLE — grammar-error underline */}
+        <style jsx global>{`
+          .grammar-error {
+            text-decoration-line: underline;
+            text-decoration-style: wavy;
+            text-decoration-color: #ef4444;
+            text-underline-offset: 3px;
+          }
+        `}</style>
+
+        {/* HEADER */}
+        <header className="bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-indigo-200 dark:border-indigo-800 sticky top-0 z-10">
           <div className="flex items-center justify-between p-3 gap-3">
             <div className="flex items-center gap-2 flex-1">
-              <Button variant="ghost" size="icon" asChild className="rounded-full">
-                <NextLink href="/dashboard"><ArrowLeft className="w-5 h-5" /></NextLink>
+              <Button variant="ghost" size="icon" asChild>
+                <NextLink href="/dashboard">
+                  <ArrowLeft className="w-5 h-5" />
+                </NextLink>
               </Button>
               <Input
                 placeholder="Sarlavha..."
@@ -412,135 +440,265 @@ export function NoteEditor() {
                 className="text-xl font-bold border-none bg-transparent flex-1"
               />
             </div>
-            <div className="flex gap-1">
-              <Select value={selectedLang} onValueChange={setSelectedLang}>
-                <SelectTrigger className="w-32 h-10 rounded-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {supportedLanguages.map(lang => (
-                    <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)} className="rounded-full">
+
+            <div className="flex items-center gap-2">
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="border border-indigo-200 dark:border-indigo-700 rounded-md px-2 py-1 text-sm dark:bg-gray-900 dark:text-white"
+              >
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="ru-RU">Русский</option>
+                <option value="de-DE">Deutsch</option>
+                <option value="uz">O‘zbek</option>
+              </select>
+
+              <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)}>
                 {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => setIsFocus(!isFocus)} className="rounded-full">
+              <Button variant="ghost" size="icon" onClick={() => setIsFocus(!isFocus)}>
                 {isFocus ? <X className="w-5 h-5" /> : <Focus className="w-5 h-5" />}
               </Button>
             </div>
           </div>
-          {errors.title && <p className="text-red-600 text-sm text-center pb-2">{errors.title.message}</p>}
+          {errors.title && (
+            <p className="text-red-600 text-sm text-center pb-2">{errors.title.message}</p>
+          )}
         </header>
 
-        {/* AI Progress */}
-        <AnimatePresence>
-          {(isChecking || isTranslating || isSummarizing || isGenerating) && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
-                    <Sparkles className="w-8 h-8 text-indigo-600" />
-                  </motion.div>
-                  <div className="text-lg font-semibold text-indigo-900 dark:text-indigo-100">
-                    {typingText || "Ishlamoqda..."}
-                    <span className="animate-pulse">|</span>
+        {/* MAIN */}
+        <main className="flex-1 p-4 pb-24">
+          <div className="bg-white dark:bg-gray-950 rounded-xl shadow-lg p-4 min-h-full">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* EDITOR SIDE */}
+              <div className="flex-1">
+                {editor && <EditorContent editor={editor} />}
+
+                {/* AI LOADER */}
+                <AnimatePresence>
+                  {isAiLoading && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="mt-4"
+                    >
+                      <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-2 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-2 bg-white/70"
+                          animate={{ width: `${progress}%` }}
+                          transition={{ ease: "easeOut", duration: 0.3 }}
+                        />
+                      </div>
+                      <motion.p
+                        className="text-center mt-2 text-indigo-700 dark:text-indigo-300 font-medium"
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                      >
+                        AI tekshiruv → {Math.round(progress)}%
+                      </motion.p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* GRAMMAR ERRORS LIST */}
+                {grammarErrors.length > 0 && (
+                  <div className="mt-6 p-3 bg-red-50 dark:bg-red-900/30 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-semibold text-red-600 dark:text-red-400">
+                        {grammarErrors.length} ta xato topildi:
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={autoFixAll}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Wand2 className="w-4 h-4 text-indigo-600" />
+                        Auto Fix All
+                      </Button>
+                    </div>
+                    <ul className="list-disc pl-5 text-sm space-y-1">
+                      {grammarErrors.map((e, i) => {
+                        const fullText = editor?.getText() || "";
+                        const wrong = fullText.substring(e.offset, e.offset + e.length);
+                        const suggestion = e.replacements?.[0]?.value || "taklif yo‘q";
+                        return (
+                          <li key={i}>
+                            <span className="font-semibold text-red-500">“{wrong}”</span> →{" "}
+                            {e.message}{" "}
+                            <span className="text-indigo-600">(taklif: {suggestion})</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
+                )}
+              </div>
+
+              {/* SIDE PANEL: TRANSLATE + PROMPT */}
+              <aside className="w-full md:w-80 space-y-4">
+                {/* TRANSLATE CARD */}
+                <div className="border border-indigo-100 dark:border-indigo-800 rounded-lg p-3 bg-indigo-50/60 dark:bg-indigo-950/40">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-semibold text-indigo-700 dark:text-indigo-200 text-sm">
+                      Tarjima (English → Uzbek)
+                    </p>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      onClick={handleTranslate}
+                      disabled={isTranslating}
+                    >
+                      {isTranslating ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {translation ? (
+                    <p className="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap">
+                      {translation}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500">
+                      Matnni editorga yozing va yuqoridagi tugmani bosing.
+                    </p>
+                  )}
                 </div>
-                <div className="relative h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-3">
-                  <motion.div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
+
+                {/* PROMPT / MINI CHECK CARD */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900/50">
+                  <p className="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-100">
+                    Prompt / Kichik matn uchun AI check
+                  </p>
+                  <textarea
+                    className="w-full text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2 mb-2 resize-none h-20"
+                    placeholder="Masalan: Yesterday I go to school with my friend..."
+                    value={promptText}
+                    onChange={(e) => setPromptText(e.target.value)}
                   />
+                  <Button
+                    size="sm"
+                    className="w-full mb-2"
+                    variant="outline"
+                    onClick={checkPromptGrammar}
+                    disabled={isPromptLoading}
+                  >
+                    {isPromptLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 mr-2" />
+                    )}
+                    Promptni tekshirish
+                  </Button>
+                  {promptErrors.length > 0 && (
+                    <ul className="text-xs space-y-1 max-h-28 overflow-auto">
+                      {promptErrors.map((e, i) => {
+                        const w = promptText.substring(e.offset, e.offset + e.length);
+                        const sug = e.replacements?.[0]?.value || "taklif yo‘q";
+                        return (
+                          <li key={i}>
+                            <span className="font-semibold text-red-500">“{w}”</span> →{" "}
+                            {e.message} (
+                            <span className="text-indigo-600">{sug}</span>)
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
-                <p className="text-sm text-center text-gray-600 dark:text-gray-400">{progress}% tamamlandi</p>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Toolbar */}
-        {editor && (
-          <div className={cn(
-            "fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t border-indigo-200 dark:border-indigo-800 p-3 flex flex-wrap gap-2 justify-center items-center z-40 shadow-2xl",
-            isFocus && "hidden"
-          )}>
-            <ToolbarButton isActive={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()} title="Qalin"><Bold /></ToolbarButton>
-            <ToolbarButton isActive={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic"><Italic /></ToolbarButton>
-            <ToolbarButton isActive={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()} title="Tag chiziq"><UnderlineIcon /></ToolbarButton>
-            <ToolbarButton isActive={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} title="H1"><Heading1 /></ToolbarButton>
-            <ToolbarButton isActive={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title="H2"><Heading2 /></ToolbarButton>
-            <ToolbarButton isActive={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()} title="Nuqtali"><List /></ToolbarButton>
-            <ToolbarButton isActive={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Raqamli"><ListOrdered /></ToolbarButton>
-            <ToolbarButton onClick={() => imageInputRef.current?.click()} title="Rasm"><ImageIcon /></ToolbarButton>
-            <ToolbarButton isActive={editor.isActive("link")} onClick={() => {
-              const url = prompt("URL:", editor.getAttributes("link").href || "https://");
-              if (url) editor.chain().focus().setLink({ href: url }).run();
-            }} title="Havola"><Link2 /></ToolbarButton>
-
-            <Button size="icon" onClick={toggleListening} className="h-11 w-11 rounded-xl bg-blue-500 text-white hover:bg-blue-600">
-              {isListening ? <MicOff /> : <Mic />}
-            </Button>
-
-            <Button size="icon" onClick={checkGrammar} disabled={isChecking} className="h-11 w-11 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md">
-              <Sparkles />
-            </Button>
-
-            <Button size="icon" onClick={autoCorrect} disabled={grammarErrors.length === 0} className="h-11 w-11 rounded-xl bg-green-500 text-white shadow-md">
-              <CheckCircle />
-            </Button>
-
-            <Select value={targetTranslateLang} onValueChange={setTargetTranslateLang}>
-              <SelectTrigger className="h-11 w-11 rounded-xl bg-purple-500 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="uz">UZ</SelectItem>
-                <SelectItem value="ru">RU</SelectItem>
-                <SelectItem value="en">EN</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button size="icon" onClick={translateText} disabled={isTranslating} className="h-11 w-11 rounded-xl bg-indigo-500 text-white">
-              <Globe />
-            </Button>
-
-            <Button size="icon" onClick={summarizeText} disabled={isSummarizing} className="h-11 w-11 rounded-xl bg-orange-500 text-white">
-              <FileText />
-            </Button>
-
-            <div className="flex gap-1">
-              <Input
-                placeholder="Prompt"
-                value={generatePrompt}
-                onChange={(e) => setGeneratePrompt(e.target.value)}
-                className="h-11 w-28 rounded-xl px-2 text-sm"
-              />
-              <Button size="icon" onClick={generateText} disabled={isGenerating || !generatePrompt} className="h-11 w-11 rounded-xl bg-purple-500 text-white">
-                <Wand2 />
-              </Button>
+              </aside>
             </div>
+          </div>
+        </main>
 
+        {/* TOOLBAR */}
+        {editor && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t border-indigo-200 dark:border-indigo-800 p-2 flex flex-wrap gap-1 justify-center z-20">
+            <ToolbarButton
+              isActive={editor.isActive("bold")}
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              title="Qalin"
+            >
+              <Bold />
+            </ToolbarButton>
+            <ToolbarButton
+              isActive={editor.isActive("italic")}
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              title="Italic"
+            >
+              <Italic />
+            </ToolbarButton>
+            <ToolbarButton
+              isActive={editor.isActive("underline")}
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              title="Tag chiziq"
+            >
+              <UnderlineIcon />
+            </ToolbarButton>
+            <ToolbarButton
+              isActive={editor.isActive("heading", { level: 1 })}
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 1 }).run()
+              }
+              title="H1"
+            >
+              <Heading1 />
+            </ToolbarButton>
+            <ToolbarButton
+              isActive={editor.isActive("heading", { level: 2 })}
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 2 }).run()
+              }
+              title="H2"
+            >
+              <Heading2 />
+            </ToolbarButton>
+            <ToolbarButton
+              isActive={editor.isActive("bulletList")}
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              title="Nuqtali ro‘yxat"
+            >
+              <List />
+            </ToolbarButton>
+            <ToolbarButton
+              isActive={editor.isActive("orderedList")}
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              title="Raqamli ro‘yxat"
+            >
+              <ListOrdered />
+            </ToolbarButton>
+
+            <ToolbarButton
+              onClick={() => imageInputRef.current?.click()}
+              title="Rasm qo‘shish"
+            >
+              <ImageIcon />
+            </ToolbarButton>
+
+            {/* Templates */}
             <Sheet open={isTemplatesOpen} onOpenChange={setIsTemplatesOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-11 w-11 rounded-xl"><BookOpen /></Button>
+                <Button variant="ghost" size="icon" className="h-10 w-10">
+                  <BookOpen />
+                </Button>
               </SheetTrigger>
               <SheetContent side="bottom" className="h-96">
-                <SheetHeader><SheetTitle>Andozalar</SheetTitle></SheetHeader>
+                <SheetHeader>
+                  <SheetTitle>Andozalar</SheetTitle>
+                </SheetHeader>
                 <div className="space-y-2 mt-4">
                   {templates.map((t, i) => (
-                    <Button key={i} variant="outline" className="w-full justify-start" onClick={() => insertTemplate(t.content)}>
+                    <Button
+                      key={i}
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => insertTemplate(t.content)}
+                    >
                       {t.title}
                     </Button>
                   ))}
@@ -548,45 +706,44 @@ export function NoteEditor() {
               </SheetContent>
             </Sheet>
 
-            <Button size="icon" onClick={exportPDF} className="h-11 w-11 rounded-xl bg-green-500 text-white">
-              <Download />
+            {/* AI Grammar Check button */}
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={checkGrammar}
+              disabled={isAiLoading}
+              className="h-10 w-10"
+            >
+              {isAiLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+              ) : (
+                <Sparkles />
+              )}
             </Button>
 
+            {/* SAVE button */}
             <Button
               onClick={handleSubmit(handleSave)}
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="bg-indigo-600 text-white hover:bg-indigo-500 h-11 px-5 rounded-xl shadow-md font-medium"
+              className="bg-indigo-600 text-white hover:bg-indigo-500 h-10 px-4 ml-2"
             >
               {createMutation.isPending || updateMutation.isPending ? (
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }}><Save className="w-5 h-5 mr-2" /></motion.div>
-              ) : <Save className="w-5 h-5 mr-2" />}
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
               Saqlash
             </Button>
           </div>
         )}
 
-        {/* Editor */}
-        <main className={cn("flex-1 p-4 pb-28 md:pb-6 overflow-y-auto", isFocus && "p-8")}>
-          <div className="bg-white dark:bg-gray-950 rounded-2xl shadow-xl p-5 min-h-full">
-            {editor && <EditorContent editor={editor} />}
-            {grammarErrors.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl"
-              >
-                <p className="font-bold text-red-700 dark:text-red-300 flex items-center gap-2">
-                  <X className="w-5 h-5" /> {grammarErrors.length} ta xato
-                </p>
-                <ul className="mt-2 space-y-1 text-sm text-red-600 dark:text-red-400">
-                  {grammarErrors.map((e, i) => <li key={i} className="pl-1">• {e}</li>)}
-                </ul>
-              </motion.div>
-            )}
-          </div>
-        </main>
-
-        <input type="file" accept="image/*" ref={imageInputRef} onChange={handleImageUpload} className="hidden" />
+        <input
+          type="file"
+          accept="image/*"
+          ref={imageInputRef}
+          onChange={handleImageUpload}
+          className="hidden"
+        />
       </div>
     </TooltipProvider>
   );

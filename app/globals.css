@@ -268,3 +268,20 @@ input:focus-visible {
   background-color: #1e293b;
   color: #e2e8f0;
 }
+
+
+.grammar-error {
+  text-decoration: underline wavy red;
+  cursor: pointer;
+}
+
+.grammar-error:hover::after {
+  content: attr(data-suggestion);
+  background: #fff;
+  color: #000;
+  position: absolute;
+  font-size: 12px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 4px 8px;
+}
