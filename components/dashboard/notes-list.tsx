@@ -234,7 +234,6 @@ export default function UserProfilePage() {
 
         <Separator className="max-w-4xl mx-auto" />
 
-        {/* === NOTES === */}
         <motion.div variants={itemVariants}>
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-3">
             <Lightbulb className="h-8 w-8 text-yellow-500" />
@@ -266,7 +265,6 @@ export default function UserProfilePage() {
         </motion.div>
       </motion.div>
 
-      {/* === MODALS === */}
       <NoteDetailModal
         note={selectedNote}
         isOpen={modalOpen}
@@ -290,7 +288,6 @@ export default function UserProfilePage() {
   );
 }
 
-/* === Empty State === */
 function EmptyState({ username, isOwn }: { username: string | undefined; isOwn: boolean }) {
   return (
     <motion.div
@@ -300,14 +297,14 @@ function EmptyState({ username, isOwn }: { username: string | undefined; isOwn: 
     >
       <Lightbulb className="h-16 w-16 text-yellow-500 mx-auto mb-4 opacity-70" />
       <p className="text-xl font-medium text-slate-700 dark:text-slate-300">
-        {isOwn ? "Siz hali nota joylamadingiz" : `@${username} hali nota joylamagan`}
+        {isOwn ? "You have not posted a note yet." : `@${username} has not posted a note yet.`}
       </p>
       <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-        {isOwn ? "Birinchi fikringizni baham ko‘ring!" : "Ularning birinchi g‘oyasini kutamiz..."}
+        {isOwn ? "Share your first idea!" : "We are waiting for their first idea..."}
       </p>
       {isOwn && (
         <Button asChild className="mt-6 bg-gradient-to-r from-indigo-600 to-purple-600">
-          <Link href="/dashboard/new">+ Yangi Nota</Link>
+          <Link href="/dashboard/new">+ New Note</Link>
         </Button>
       )}
     </motion.div>
