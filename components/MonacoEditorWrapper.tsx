@@ -32,7 +32,6 @@ const MonacoEditorWrapper: React.FC<MonacoEditorProps> = ({
   };
 
   const options = useMemo((): monaco.editor.IEditorOptions => ({
-    "semanticHighlighting.enabled": true,
     quickSuggestions: { other: true, comments: true, strings: true, },
     suggest: { snippetsPreventQuickSuggestions: false, },
     autoClosingBrackets: 'always',
@@ -42,7 +41,7 @@ const MonacoEditorWrapper: React.FC<MonacoEditorProps> = ({
     smoothScrolling: true,
     lineNumbers: 'on',
     renderLineHighlight: 'all',
-    'editor.bracketPairColorization.enabled': true,
+    bracketPairColorization: { enabled: true },
     wordWrap: 'on',
     formatOnType: true,
     formatOnPaste: true,

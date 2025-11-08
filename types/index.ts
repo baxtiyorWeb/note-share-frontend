@@ -46,6 +46,8 @@ export interface Note {
   profile: Profile;
   sharedWith?: Profile[];
   createdAt?: any;
+  is_code_mode?: boolean;
+  code_language?: string;
 
 }
 

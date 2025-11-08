@@ -547,11 +547,8 @@ export function NoteEditor() {
               <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)}>
                 {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => setIsFocus(!isFocus)}>
-                {isFocus ? <X className="w-5 h-5" /> : <Focus className="w-5 h-5" />}
-              </Button>
 
-              {/* Rejim almashtirish tugmasi */}
+
               <Button variant="ghost" size="icon" onClick={toggleCodeMode} title={isCodeMode ? "Note Editorga o‘tish" : "Code Editorga o‘tish"}>
                 {isCodeMode ? <BookOpen className="w-5 h-5 text-indigo-600" /> : <Code className="w-5 h-5" />}
               </Button>
@@ -562,19 +559,15 @@ export function NoteEditor() {
           )}
         </header>
 
-        {/* MAIN */}
         <main className="flex-1 p-4 pb-24">
           <div className="bg-white dark:bg-gray-950 rounded-xl shadow-lg p-4 min-h-full">
             <div className="flex flex-col md:flex-row gap-4">
-              {/* EDITOR SIDE */}
               <div className="flex-1">
 
-                {/* Muharrirni rejimga qarab ko'rsatish */}
                 {isCodeMode ? (
-                  // Dasturchi Rejimi: Monaco Editor
                   <MonacoEditorWrapper
                     value={codeContent}
-                    onChange={setCodeContent}
+                    onChange={(value) => setCodeContent(value ?? "")}
                     language={codeLanguage}
                     isDark={isDark}
                   />
