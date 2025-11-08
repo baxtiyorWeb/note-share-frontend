@@ -119,7 +119,7 @@ export default function UserProfilePage() {
       <DashboardLayout>
         <div className="text-center p-10 bg-white dark:bg-slate-900 rounded-xl shadow-lg m-auto max-w-lg mt-10">
           <h2 className="text-2xl font-bold text-red-500 mb-3">
-            Something went wrong 😔
+            Something went wrong
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
             The user @{id} could not be found or failed to load data.
