@@ -9,7 +9,8 @@ import {
   Heart,
   Eye,
   BookOpen, // Ilm ruhini aks ettirish uchun yangi icon
-  Share2, // Qo'shimcha aksiya uchun
+  Share2,
+  Pen, // Qo'shimcha aksiya uchun
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -53,12 +54,13 @@ export const MinimalNoteCard: React.FC<MinimalNoteCardProps> = ({
   const author = note.profile;
   const isLiked = note.likes?.some((like) => like.profile?.id === currentProfileId) ?? false;
 
-  // Like, Comment, View countlar uchun to'g'ri raqamlarni olish
   const likesCount = note.likesCount ?? note.likes?.length ?? 0;
   const commentsCount = note.commentsCount ?? note.comments?.length ?? 0;
   const viewsCount = note.viewsCount ?? 0;
 
-  // --- Render Author Info with Link ---
+
+
+
   const renderAuthorInfo = () => (
     <Link
       href={`/dashboard/profile/${author?.username}`}
@@ -225,13 +227,25 @@ export const MinimalNoteCard: React.FC<MinimalNoteCardProps> = ({
           onClick={(e) => { e.stopPropagation(); onOpenDetail(note); }}
           className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
         >
-          <BookOpen className="w-4 h-4 mr-2" /> Ko‘rish
+          <BookOpen className="w-4 h-4 mr-2" /> view
         </DropdownMenuItem>
+        {note.profile?.id === currentProfileId && (
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              window.location.href = `/dashboard/edit/${note.id}`;
+              toast.success("Note editing opened!");
+            }}
+            className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+          >
+            <Pen className="w-4 h-4 mr-2" /> edit
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           onClick={(e) => { e.stopPropagation(); toast.success("Note link copied!"); }} // Misol
           className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
         >
-          <Share2 className="w-4 h-4 mr-2" /> Ulashish
+          <Share2 className="w-4 h-4 mr-2" /> share
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={(e) => {
@@ -243,7 +257,7 @@ export const MinimalNoteCard: React.FC<MinimalNoteCardProps> = ({
           O‘chirish
         </DropdownMenuItem>
       </DropdownMenuContent>
-    </DropdownMenu>
+    </DropdownMenu >
   );
 
   return (

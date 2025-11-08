@@ -183,6 +183,7 @@ export default function ExplorePage() {
                     currentProfileId={currentProfileId}
                     onToggleLike={handleToggleLike}
                     onOpenDetail={handleOpen}
+                    onDelete={() => { console.log("delete") }}
                   />
                 </motion.div>
               ))}

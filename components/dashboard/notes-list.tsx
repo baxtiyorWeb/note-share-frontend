@@ -27,8 +27,7 @@ import { useProfileByUsername, useMyProfile } from "@/hooks/use-profile";
 import { useToggleFollow, useFollowCounts } from "@/hooks/use-follow";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { Note } from "@/types";
-import { useDeleteNote, useNote, useNotes } from "@/hooks/use-note";
-import { deleteNote } from "@/services/notes-service";
+import { useDeleteNote, useNotes } from "@/hooks/use-note";
 
 // === Animation variants ===
 const containerVariants: Variants = {
@@ -40,22 +39,20 @@ const itemVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
 };
 
-// === Helper ===
 const getInitials = (f?: string, l?: string) => `${f?.[0] ?? ""}${l?.[0] ?? ""}`.toUpperCase();
 
 export default function UserProfilePage() {
   const { data: myProfile } = useMyProfile();
-  const currentUserId = myProfile?.id;
+  const currentUserId = myProfile?.profile?.id as number;
   const username = myProfile?.profile?.username as string;
 
   const { data: profile, isLoading, error } = useProfileByUsername(username);
   const { data: notes, refetch, isLoading: noteLoad, } = useNotes();
   const targetUserId = myProfile?.id as number;
 
-  const { data: followCounts } = useFollowCounts(targetUserId);
   const deleteNote = useDeleteNote();
   const { mutate: toggleFollow, isPending } = useToggleFollow();
-  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: stats, } = useDashboardStats();
 
   const isOwnProfile = currentUserId === targetUserId;
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
@@ -64,7 +61,6 @@ export default function UserProfilePage() {
   const [followListType, setFollowListType] = useState<"followers" | "following" | null>(null);
 
   const isFollowing = myProfile?.profile?.isFollowing ?? false;
-  console.log(isFollowing, myProfile);
   const handleFollow = () => {
     toggleFollow(username, {
       onSuccess: () => toast.success(isFollowing ? "Unfollowed" : "Followed!"),

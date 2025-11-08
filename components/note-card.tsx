@@ -212,12 +212,11 @@ export const CompactNoteCard = ({
               )}
             </div>
 
-            {/* Reply/Comment Button */}
             <button
               onClick={() => onOpenDetail(note)}
               className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
             >
-              Izoh yozing
+              write a comment
             </button>
           </div>
         </div>

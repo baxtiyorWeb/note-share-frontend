@@ -121,8 +121,6 @@ const applyHighlights = (html: string, plainText: string, errors: any[]) => {
   return result;
 };
 
-// ***********************************************************************************
-
 export function NoteEditor() {
   const { id } = useParams();
   const router = useRouter();
@@ -130,21 +128,16 @@ export function NoteEditor() {
   const isEdit = !!noteId;
 
   const [isDark, setIsDark] = useState(false);
-  const [isFocus, setIsFocus] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
 
-  // Rejim holati (false = Note Editor, true = Code Editor)
   const [isCodeMode, setIsCodeMode] = useState(false);
-  // Code muharririning kontenti va default til
   const [codeContent, setCodeContent] = useState("");
-  // YANGI: Monaco uchun til holati (Note Editor'dagi "language" dan farqli)
   const [codeLanguage, setCodeLanguage] = useState("javascript");
 
   const [grammarErrors, setGrammarErrors] = useState<any[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [language, setLanguage] = useState("en-US"); // Note Editor uchun til (Grammar Check)
-
+  const [language, setLanguage] = useState("en-US");
   const [translation, setTranslation] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
 
@@ -188,7 +181,6 @@ export function NoteEditor() {
     },
   });
 
-  // Draftni yuklash (rejimni hisobga olgan holda)
   useEffect(() => {
     if (!editor) return;
     const saved = localStorage.getItem(`note-draft-${noteId || "new"}`);
@@ -244,7 +236,6 @@ export function NoteEditor() {
     }
   }, [note, isEdit, setValue, editor]);
 
-  // Dark mode
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
@@ -252,23 +243,17 @@ export function NoteEditor() {
   const getCleanHtml = () => {
     if (!editor) return "";
     const raw = editor.getHTML();
-    // faqat grammar-error spanlarini tozalaymiz
     return raw
       .replace(/<span class="grammar-error"[^>]*>/g, "")
       .replace(/<\/span>/g, "");
   };
 
-  // Rejimni almashtirish funksiyasi
   const toggleCodeMode = () => {
-    // Grammatika xatolarini tozalaymiz
     setGrammarErrors([]);
 
-    // Kontentni bir rejimdan ikkinchisiga o'tkazish
     if (isCodeMode) {
-      // Code -> Note: Code kontentini Tiptapga yuklash
       editor?.commands.setContent(codeContent);
     } else {
-      // Note -> Code: Tiptap kontentini codeContentga yuklash
       setCodeContent(getCleanHtml());
     }
 
@@ -280,12 +265,11 @@ export function NoteEditor() {
 
     const contentToSave = isCodeMode ? codeContent : getCleanHtml();
 
-    // Payloadga is_code_mode va code_language holatini qo'shamiz
     const payload = {
       title: data.title,
       content: contentToSave,
       is_code_mode: isCodeMode,
-      code_language: isCodeMode ? codeLanguage : null, // Faqat Code rejimida saqlaymiz
+      code_language: isCodeMode ? codeLanguage : null,
     };
 
     const mutation = isEdit ? updateMutation : createMutation;
@@ -312,10 +296,6 @@ export function NoteEditor() {
     e.target.value = "";
   };
 
-  // ... Qolgan AI funksiyalari (checkGrammar, autoFixAll, handleTranslate, checkPromptGrammar) o'zgarmasdan qoladi ...
-  // checkGrammar faqat Note rejimida ishlaydi, shuning uchun o'zgarishsiz qoldiramiz.
-
-  // 🧠 Asosiy AI grammar check (editor matni uchun)
   const checkGrammar = async () => {
     if (!editor) return;
     const plainText = editor.getText();
@@ -357,7 +337,6 @@ export function NoteEditor() {
 
       setGrammarErrors(data.matches);
 
-      // Highlightlarni editor HTML ichiga qo‘llaymiz
       const currentHtml = editor.getHTML();
       const highlightedHtml = applyHighlights(currentHtml, plainText, data.matches);
       editor.commands.setContent(highlightedHtml);
@@ -371,7 +350,6 @@ export function NoteEditor() {
     }
   };
 
-  // ✨ Barcha xatolarni avtomatik tuzatish
   const autoFixAll = () => {
     if (!editor || grammarErrors.length === 0) return;
 
@@ -391,7 +369,6 @@ export function NoteEditor() {
     toast.success("Barcha xatolar avtomatik tuzatildi ✅");
   };
 
-  // 🌍 Tarjima (en -> uz)
   const handleTranslate = async () => {
     if (!editor) return;
     const text = isCodeMode ? codeContent.trim() : editor.getText().trim();
@@ -428,7 +405,6 @@ export function NoteEditor() {
     }
   };
 
-  // 🔎 Prompt (kichik matn uchun alohida grammar check)
   const checkPromptGrammar = async () => {
     const text = promptText.trim();
     if (!text) {
@@ -466,7 +442,6 @@ export function NoteEditor() {
     setIsTemplatesOpen(false);
   };
 
-  // ... qolgan funksiyalar ...
 
   if (isNoteLoading && isEdit) {
     return (
@@ -484,7 +459,6 @@ export function NoteEditor() {
           isDark ? "dark bg-gray-900" : "bg-gradient-to-br from-indigo-50 to-gray-100",
         )}
       >
-        {/* GLOBAL STYLE — grammar-error underline */}
         <style jsx global>{`
           .grammar-error {
             text-decoration-line: underline;
@@ -494,7 +468,6 @@ export function NoteEditor() {
           }
         `}</style>
 
-        {/* HEADER */}
         <header className="bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-indigo-200 dark:border-indigo-800 sticky top-0 z-10">
           <div className="flex items-center justify-between p-3 gap-3">
             <div className="flex items-center gap-2 flex-1">
@@ -512,7 +485,6 @@ export function NoteEditor() {
 
             <div className="flex items-center gap-2">
 
-              {/* Note Editor tili (Grammar Check) yoki Code Editor tili selectori */}
               {isCodeMode ? (
                 <select
                   value={codeLanguage}
@@ -572,11 +544,9 @@ export function NoteEditor() {
                     isDark={isDark}
                   />
                 ) : (
-                  // Eslatma Rejimi: Tiptap Editor
                   editor && <EditorContent editor={editor} />
                 )}
 
-                {/* AI LOADER faqat Note rejimida */}
                 {!isCodeMode && (
                   <AnimatePresence>
                     {isAiLoading && (
@@ -605,7 +575,6 @@ export function NoteEditor() {
                   </AnimatePresence>
                 )}
 
-                {/* GRAMMAR ERRORS LIST faqat Note rejimida */}
                 {!isCodeMode && grammarErrors.length > 0 && (
                   <div className="mt-6 p-3 bg-red-50 dark:bg-red-900/30 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
@@ -640,9 +609,7 @@ export function NoteEditor() {
                 )}
               </div>
 
-              {/* SIDE PANEL: TRANSLATE + PROMPT */}
               <aside className="w-full md:w-80 space-y-4">
-                {/* TRANSLATE CARD */}
                 <div className="border border-indigo-100 dark:border-indigo-800 rounded-lg p-3 bg-indigo-50/60 dark:bg-indigo-950/40">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold text-indigo-700 dark:text-indigo-200 text-sm">
@@ -673,7 +640,6 @@ export function NoteEditor() {
                   )}
                 </div>
 
-                {/* PROMPT / MINI CHECK CARD */}
                 <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900/50">
                   <p className="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-100">
                     Prompt / Kichik matn uchun AI check
@@ -719,7 +685,6 @@ export function NoteEditor() {
           </div>
         </main>
 
-        {/* TOOLBAR faqat Eslatma Rejimida */}
         {editor && !isCodeMode && (
           <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t border-indigo-200 dark:border-indigo-800 p-2 flex flex-wrap gap-1 justify-center z-20">
             <ToolbarButton
@@ -808,8 +773,6 @@ export function NoteEditor() {
                 </div>
               </SheetContent>
             </Sheet>
-
-            {/* AI Grammar Check button */}
             <Button
               size="icon"
               variant="ghost"
@@ -824,7 +787,6 @@ export function NoteEditor() {
               )}
             </Button>
 
-            {/* SAVE button (Note Mode) */}
             <Button
               onClick={handleSubmit(handleSave)}
               disabled={createMutation.isPending || updateMutation.isPending}
@@ -840,7 +802,6 @@ export function NoteEditor() {
           </div>
         )}
 
-        {/* SAVE button Code Rejimida */}
         {isCodeMode && (
           <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t border-indigo-200 dark:border-indigo-800 p-2 flex justify-end z-20">
             <Button
