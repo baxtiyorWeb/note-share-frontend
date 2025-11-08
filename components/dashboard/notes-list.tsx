@@ -1,555 +1,315 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useState, useMemo } from "react";
+import { motion, Variants } from "framer-motion";
+import {
+  Loader2,
+  MessageCircle,
+  UserCheck,
+  UserPlus,
+  Lightbulb,
+  Users,
+  Bookmark,
+  Eye,
+  Heart,
+} from "lucide-react";
+import toast from "react-hot-toast";
 import Link from "next/link";
-import { motion, AnimatePresence, Variants } from "framer-motion";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { useNotes, useDeleteNote, useShareNote } from "@/hooks/use-note";
-import { useMyProfile, useProfileByUsername } from "@/hooks/use-profile";
-import { useDashboardStats } from "@/hooks/use-dashboard-stats";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import { Edit, Trash2, Share2, Search, CheckCircle2, AlertCircle, NotebookPen, Plus, BookOpen, Eye, Heart, MessageCircle, MoreHorizontal, Loader2, ListFilter, TrendingUp, TrendingDown, ChevronUp, ChevronDown } from "lucide-react";
-import { useUsers } from "@/hooks/use-users";
-import { User } from "@/types";
-import { NoteDetailModal } from "./note-detail-modal";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { MinimalNoteCard } from "@/components/dashboard/note-card";
+import { NoteDetailModal } from "@/components/dashboard/note-detail-modal";
+import { FollowListModal } from "../follow-list-modal";
 
-// --- Interfaces ---
-interface Profile {
-  id: number;
-  firstName?: string;
-  lastName?: string;
-  username?: string;
-  avatar?: string;
-  name?: string;
-}
+import { useProfileByUsername, useMyProfile } from "@/hooks/use-profile";
+import { useToggleFollow, useFollowCounts } from "@/hooks/use-follow";
+import { useDashboardStats } from "@/hooks/use-dashboard-stats";
+import { Note } from "@/types";
+import { useDeleteNote, useNote, useNotes } from "@/hooks/use-note";
+import { deleteNote } from "@/services/notes-service";
 
-interface Note {
-  id: number;
-  title: string;
-  content: string;
-  updatedAt: string;
-  views: { id: number; createdAt: string; viewer: Profile }[];
-  likes: { id: number; createdAt: string; profile: Profile }[];
-  comments: { id: number; text: string; createdAt: string; author: Profile }[];
-  totalViews?: number;
-  totalLikes?: number;
-  totalComments?: number;
-  profile: Profile;
-}
-
-interface NoteCardProps {
-  note: Note;
-  onView: (note: Note) => void;
-  onDelete: (id: number) => void;
-  onShare: (note: Note) => void;
-}
-
-const shareSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-});
-type ShareFormData = z.infer<typeof shareSchema>;
-
-// --- Hooks and Utilities ---
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-  return debouncedValue;
-}
-
-const getInitials = (profile?: Profile): string => {
-  if (!profile) return "U";
-  const name = profile.username || profile.firstName || "User";
-  return name
-    .split(/\s+/)
-    .map(n => n[0] || "")
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+// === Animation variants ===
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.2 } },
 };
-
-const formatRelativeTime = (dateString?: string) => {
-  if (!dateString) return "";
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours}h ago`;
-  const diffInDays = Math.floor(diffInHours / 24);
-  return diffInDays < 7 ? `${diffInDays}d ago` : date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-};
-
-const stripHtml = (htmlString: string) => {
-  if (!htmlString) return "";
-  const plainText = htmlString.replace(/<[^>]*>/g, " ");
-  return plainText.replace(/\s\s+/g, " ").trim();
-};
-
-const LoadingState = () => (
-  <div className="flex justify-center items-center min-h-[60vh] bg-gray-50 dark:bg-gray-900">
-    <Loader2 className="w-12 h-12 text-indigo-500 dark:text-indigo-400 animate-spin" />
-  </div>
-);
-
-const EmptyState = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 bg-gray-50 dark:bg-gray-900"
-  >
-    <div className="flex flex-col items-center gap-6 p-10 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 w-full max-w-md">
-      <div className="p-5 bg-gray-100 dark:bg-gray-700 rounded-full">
-        <NotebookPen className="w-12 h-12 text-indigo-500 dark:text-indigo-400" />
-      </div>
-      <div className="space-y-2">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Your Notebook is Empty</h2>
-        <p className="text-gray-600 dark:text-gray-300">Let’s create your first note and bring your ideas to life!</p>
-      </div>
-      <Button
-        asChild
-        size="lg"
-        className="w-full bg-indigo-600 text-white dark:bg-indigo-500 dark:hover:bg-indigo-600 hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-600/20 dark:shadow-indigo-500/20"
-      >
-        <Link href="/dashboard/new">
-          <Plus className="w-5 h-5 mr-2" /> Create New Note
-        </Link>
-      </Button>
-    </div>
-  </motion.div>
-);
-
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20, scale: 0.98 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, ease: "easeOut" } },
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
 };
 
-const DashboardStats = ({ stats }: { stats: any }) => {
-  const statItems = [
-    { title: "Notes", value: stats?.totalNotes, trend: 12.5, icon: BookOpen, color: "text-indigo-500 dark:text-violet-400", bgColor: "bg-indigo-500/10 dark:bg-violet-500/10", border: "border-indigo-200 dark:border-violet-600/50", shadow: "shadow-indigo-300/30 dark:shadow-violet-800/20" },
-    { title: "Views", value: stats?.totalViews, trend: 5.8, icon: Eye, color: "text-sky-500 dark:text-cyan-400", bgColor: "bg-sky-500/10 dark:bg-cyan-500/10", border: "border-sky-200 dark:border-cyan-600/50", shadow: "shadow-sky-300/30 dark:shadow-cyan-800/20" },
-    { title: "Likes", value: stats?.totalLikes, trend: -3.2, icon: Heart, color: "text-rose-500 dark:text-rose-400", bgColor: "bg-rose-500/10 dark:bg-rose-500/10", border: "border-rose-200 dark:border-rose-600/50", shadow: "shadow-rose-300/30 dark:shadow-rose-800/20" },
-    { title: "Comments", value: stats?.totalComments, trend: 8.9, icon: MessageCircle, color: "text-amber-500 dark:text-amber-400", bgColor: "bg-amber-500/10 dark:bg-amber-500/10", border: "border-amber-200 dark:border-amber-600/50", shadow: "shadow-amber-300/30 dark:shadow-amber-800/20" },
-  ];
+// === Helper ===
+const getInitials = (f?: string, l?: string) => `${f?.[0] ?? ""}${l?.[0] ?? ""}`.toUpperCase();
 
-  return (
-    <motion.div
-      variants={{ show: { transition: { staggerChildren: 0.05 } } }}
-      initial="hidden"
-      animate="show"
-      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-    >
-      {statItems.map((item, index) => {
-        const isPositive = item.trend >= 0;
-        const TrendIcon = isPositive ? ChevronUp : ChevronDown;
-        const trendColor = isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400";
-        const trendValue = Math.abs(item.trend).toFixed(1);
-
-        return (
-          <motion.div
-            key={item.title}
-            variants={itemVariants}
-            transition={{ delay: index * 0.1 }}
-            className="col-span-1"
-          >
-            <Card
-              className={`p-4 rounded-xl bg-white dark:bg-slate-900 border ${item.border}
-                           transition-all duration-500 h-full cursor-pointer
-                           shadow-lg hover:shadow-xl hover:shadow-lg dark:hover:shadow-2xl
-                           hover:${item.shadow} transform hover:-translate-y-1`}
-            >
-              <div className="flex justify-between items-center">
-                <div className="flex flex-col">
-                  <div className="text-2xl font-extrabold text-gray-900 dark:text-slate-50">
-                    {item.value ? item.value.toLocaleString() : 0}
-                  </div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-slate-400 mt-0.5">{item.title}</p>
-                </div>
-                <div className={`p-2 rounded-lg ${item.bgColor}`}>
-                  <item.icon className={`w-5 h-5 ${item.color}`} />
-                </div>
-              </div>
-              <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-800 flex items-center">
-                <div className={`flex items-center text-sm font-bold ${trendColor}`}>
-                  <TrendIcon className="w-4 h-4 mr-1" />
-                  <span>{isPositive ? '+' : '-'}{trendValue}%</span>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        );
-      })}
-    </motion.div>
-  );
-};
-
-const NoteCard = ({ note, onView, onDelete, onShare }: NoteCardProps) => {
-  const [isImageLoading, setIsImageLoading] = useState(false);
-
-  return (
-    <motion.div
-      variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
-      whileHover={{ y: -3, scale: 1.01 }}
-      layout
-      exit={{ opacity: 0, y: 20, transition: { duration: 0.2 } }}
-      className="group cursor-pointer"
-      onClick={() => onView(note)}
-    >
-      <Card className="bg-white dark:bg-slate-900 rounded-xl shadow-lg hover:shadow-xl hover:shadow-indigo-500/20 dark:hover:shadow-violet-400/10 border border-gray-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-violet-600 transition-all duration-300 h-full flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between gap-4 ">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <Avatar className="h-9 w-9 border border-gray-300 dark:border-slate-700">
-              <AvatarImage src={note.profile?.avatar} alt={note.profile?.username} onLoad={() => setIsImageLoading(false)} onError={() => setIsImageLoading(false)} />
-              <AvatarFallback className="bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-sm">{getInitials(note.profile)}</AvatarFallback>
-            </Avatar>
-            <div className="truncate">
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{note.profile?.username || "Anonymous"}</p>
-              <p className="text-xs text-gray-500 dark:text-slate-400">{formatRelativeTime(note.updatedAt)}</p>
-            </div>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="w-4 h-4 cursor-pointer" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-900 dark:text-gray-100">
-              <DropdownMenuItem asChild>
-                <Link
-                  href={`/dashboard/edit/${note.id}`}
-                  className="flex items-center gap-2 cursor-pointer"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Edit className="w-4 h-4 text-gray-500 dark:text-slate-400" /> Edit
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => { e.stopPropagation(); onShare(note); }}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <Share2 className="w-4 h-4 text-gray-500 dark:text-slate-400" /> Share
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-gray-200 dark:bg-slate-700" />
-              <DropdownMenuItem
-                onClick={(e) => { e.stopPropagation(); onDelete(note.id); }}
-                className="flex items-center gap-2 text-rose-500 dark:text-rose-400 focus:text-rose-600 dark:focus:text-rose-300 focus:bg-rose-500/10 dark:focus:bg-rose-400/10 cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4" /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </CardHeader>
-
-        <CardContent className="flex-1  py-0">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 group-hover:text-indigo-600 dark:group-hover:text-violet-400 transition-colors truncate">
-            {note.title}
-          </h2>
-          <div className="mt-2 text-gray-600 dark:text-slate-300 text-sm leading-relaxed line-clamp-3">
-            {note.content ? <p>{stripHtml(note.content)}</p> : <p className="italic text-gray-500 dark:text-slate-400">No content.</p>}
-          </div>
-        </CardContent>
-
-        <CardFooter className="pt-3  flex items-center justify-between">
-          <div className="flex items-center gap-4 text-gray-500 dark:text-slate-400 text-xs">
-            {[
-              { Icon: Heart, value: note.totalLikes },
-              { Icon: MessageCircle, value: note.totalComments },
-              { Icon: Eye, value: note.totalViews },
-            ].map(({ Icon, value }, index) => (
-              <div key={index} className="flex items-center gap-1.5">
-                <Icon className="w-4 h-4" />
-                <span>{value ?? 0}</span>
-              </div>
-            ))}
-          </div>
-        </CardFooter>
-      </Card>
-    </motion.div>
-  );
-};
-
-
-
-const ShareNoteDialog = ({
-  note,
-  isOpen,
-  onOpenChange,
-}: {
-  note: Note | null;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-}) => {
-  const shareMutation = useShareNote();
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ShareFormData>({
-    resolver: zodResolver(shareSchema),
-  });
-
-  const watchedUsername = watch("username");
-  const debouncedSearchTerm = useDebounce(watchedUsername || "", 500);
-  const { data: targetProfile, isFetching: isFetchingProfile } = useProfileByUsername(debouncedSearchTerm);
-  const userNotFound = debouncedSearchTerm && !isFetchingProfile && !targetProfile;
-  const { data: users, isLoading } = useUsers();
-
-  const onShareSubmit = (data: ShareFormData) => {
-    if (!note || !targetProfile) return;
-    shareMutation.mutate(
-      { noteId: note.id, targetProfileId: targetProfile.id },
-      {
-        onSuccess: () => {
-          reset();
-          onOpenChange(false);
-        },
-      }
-    );
-  };
-
-  if (!note) return null;
-
-  return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) reset();
-        onOpenChange(open);
-      }}
-    >
-      <DialogContent className="max-w-md bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50 rounded-xl shadow-xl">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Share Note</DialogTitle>
-          <DialogDescription className="text-gray-600 dark:text-gray-400">
-            Share "{note.title}" with another user.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit(onShareSubmit)} className="space-y-4 pt-4">
-          <div>
-            <Label htmlFor="username" className="mb-2 block text-gray-700 dark:text-gray-300">
-              Search Username
-            </Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400" />
-              <Input
-                id="username"
-                placeholder="e.g., john.doe"
-                className="pl-10 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-                {...register("username")}
-              />
-            </div>
-            {errors.username && (
-              <p className="text-sm text-rose-500 dark:text-rose-400 mt-2">
-                {errors.username.message}
-              </p>
-            )}
-          </div>
-
-          <div className="min-h-[200px] space-y-3">
-            {isFetchingProfile && (
-              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                <Loader2 className="w-4 h-4 animate-spin" /> Loading...
-              </div>
-            )}
-            {userNotFound && (
-              <p className="text-sm text-rose-500 dark:text-rose-400">User not found.</p>
-            )}
-            {targetProfile && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-3"
-              >
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={targetProfile.avatar || ""} />
-                    <AvatarFallback className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                      {getInitials(targetProfile)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-200">{targetProfile.username}</p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  type="submit"
-                  disabled={shareMutation.isPending}
-                  className="bg-indigo-600 text-white dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600"
-                >
-                  {shareMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
-                </Button>
-              </motion.div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-export default function NotesListPage() {
-  const { data: notes, isLoading: isNotesLoading } = useNotes();
-  const { data: stats, isLoading: isStatsLoading } = useDashboardStats();
+export default function UserProfilePage() {
   const { data: myProfile } = useMyProfile();
-  const deleteMutation = useDeleteNote();
-  const [selectedNote, setSelectedNote] = useState<Note | any>(null);
-  const currentProfileId = myProfile?.profile?.id;
+  const currentUserId = myProfile?.id;
+  const username = myProfile?.profile?.username as string;
 
+  const { data: profile, isLoading, error } = useProfileByUsername(username);
+  const { data: notes, refetch, isLoading: noteLoad, } = useNotes();
+  const targetUserId = myProfile?.id as number;
 
+  const { data: followCounts } = useFollowCounts(targetUserId);
+  const deleteNote = useDeleteNote();
+  const { mutate: toggleFollow, isPending } = useToggleFollow();
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
 
+  const isOwnProfile = currentUserId === targetUserId;
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [followListOpen, setFollowListOpen] = useState(false);
+  const [followListType, setFollowListType] = useState<"followers" | "following" | null>(null);
 
-  const [noteForShare, setNoteForShare] = useState<Note | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-  const handleDeleteNote = (id: number) => {
-    deleteMutation.mutate(id);
+  const isFollowing = myProfile?.profile?.isFollowing ?? false;
+  console.log(isFollowing, myProfile);
+  const handleFollow = () => {
+    toggleFollow(username, {
+      onSuccess: () => toast.success(isFollowing ? "Unfollowed" : "Followed!"),
+      onError: () => toast.error("Failed to update follow status"),
+    });
   };
-  const handleCloseModal = () => {
-    setSelectedNote(null);
+
+  const openNote = (note: Note) => {
+    setSelectedNote(note);
+    setModalOpen(true);
   };
 
-  const handleToggleLike = useCallback((noteId: number) => {
-    // Since NoteDetailModal has its own toggleLike, but to update the list, we can refetch or optimistically update
-    // For simplicity, refetch shared notes after like in modal's onSuccess if needed, but since modal handles it internally, assume it's fine.
-    // If need to update list, pass a refetch prop or something, but for now, keep as is.
-  }, []);
-
-
-
-  const filteredNotes = React.useMemo(() => {
-    if (!notes) return [];
-    if (!debouncedSearchTerm) return notes;
-
-    const lowerCaseSearchTerm = debouncedSearchTerm.toLowerCase();
-
-    return notes.filter(note =>
-      note.title.toLowerCase().includes(lowerCaseSearchTerm) ||
-      stripHtml(note.content).toLowerCase().includes(lowerCaseSearchTerm) ||
-      note.profile?.username?.toLowerCase().includes(lowerCaseSearchTerm)
+  const openFollowList = (type: "followers" | "following") => {
+    setFollowListType(type);
+    setFollowListOpen(true);
+  };
+  const onDelete = (noteId: number) => {
+    deleteNote.mutate(noteId)
+    refetch()
+  }
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
+      </div>
     );
-  }, [notes, debouncedSearchTerm]);
-
-  if (isNotesLoading) {
-    return <div className="bg-gray-50 dark:bg-gray-900"><LoadingState /></div>;
   }
 
-  if (!notes || notes.length === 0) {
-    return <div className="bg-gray-50 dark:bg-gray-900"><EmptyState /></div>;
+  if (error || !profile) {
+    return (
+      <div className="max-w-md mx-auto mt-32 text-center">
+        <Lightbulb className="h-16 w-16 text-yellow-500 mx-auto mb-4 opacity-70" />
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Profile Not Found</h2>
+        <p className="text-slate-600 dark:text-slate-400 mt-2">@{username} not found</p>
+        <Button asChild variant="outline" className="mt-6">
+          <Link href="/dashboard/explore">Explore Notes</Link>
+        </Button>
+      </div>
+    );
   }
 
+  const totalNotes = stats?.totalNotes ?? notes?.length;
+  const totalViews = stats?.totalViews ?? 0;
+  const totalLikes = stats?.totalLikes ?? 0;
+  const followersCount = myProfile?.followers?.length ?? 0;
+
+  const followingCount = myProfile?.following?.length ?? 0;
   return (
-    <TooltipProvider delayDuration={100}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 max-w-[1500px] mx-auto">
-        <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex-shrink-0">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-50">My Notes</h1>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">{notes.length} note{notes.length !== 1 ? "s" : ""} in your collection</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <motion.div
+        className="max-w-full mx-auto px-4 py-10 space-y-12"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* === HEADER === */}
+        <motion.div
+          variants={itemVariants}
+          className="relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800"
+        >
+          {/* Cover */}
+          <div className="h-60 md:h-80 relative">
+            {profile.coverImage ? (
+              <img
+                src={profile.coverImage}
+                alt="cover"
+                className="w-full h-full object-cover opacity-90"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center">
+                <Lightbulb className="h-20 w-20 text-white/30 animate-pulse" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <Input
-                placeholder="Search notes..."
-                className="pl-9 w-full md:w-64 h-10 bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700 focus:border-indigo-500 dark:focus:border-violet-400"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          {/* Profile Info */}
+          <div className="relative px-6 pb-10 -mt-20 md:-mt-28">
+            <div className="flex flex-col md:flex-row md:items-end gap-6">
+              {/* Avatar */}
+              <motion.div whileHover={{ scale: 1.05 }}>
+                <Avatar className="h-32 w-32 md:h-40 md:w-40 ring-8 ring-white dark:ring-slate-900 shadow-2xl border-4 border-white/10">
+                  <AvatarImage src={profile.avatar} />
+                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-4xl font-bold">
+                    {getInitials(profile.firstName, profile.lastName)}
+                  </AvatarFallback>
+                </Avatar>
+              </motion.div>
+
+              {/* Name + Username */}
+              <div className="flex-1 text-center md:text-left">
+                <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white">
+                  {profile.firstName} {profile.lastName}
+                </h1>
+                <p className="text-lg text-indigo-600 dark:text-indigo-400 font-medium mt-1">
+                  @{profile.username}
+                </p>
+              </div>
+
+              {/* Actions */}
+              {!isOwnProfile && (
+                <div className="flex gap-3">
+                  <Button variant="outline" size="lg" className="shadow-sm hover:bg-slate-100">
+                    <MessageCircle className="h-5 w-5 mr-2" /> Message
+                  </Button>
+                  <Button
+                    onClick={handleFollow}
+                    disabled={isPending}
+                    size="lg"
+                    className={`shadow-md ${isFollowing
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                      }`}
+                  >
+                    {isPending ? (
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    ) : isFollowing ? (
+                      <>
+                        <UserCheck className="h-5 w-5 mr-2" /> Following
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-5 w-5 mr-2" /> Follow
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
 
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-10 w-10 flex-shrink-0 border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800"
+            {/* Bio */}
+            <motion.div
+              variants={itemVariants}
+              className="mt-8 px-5 py-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl border-l-4 border-indigo-500"
             >
-              <ListFilter className="w-5 h-5 text-gray-500 dark:text-slate-400" />
-            </Button>
+              <p className="text-base text-slate-700 dark:text-slate-200 leading-relaxed italic">
+                {profile.bio || "This user hasn’t added a bio yet."}
+              </p>
+            </motion.div>
 
-            <Button asChild className="h-10 px-4 bg-indigo-600 text-white dark:bg-violet-500 dark:hover:bg-violet-600 hover:bg-indigo-700 flex-shrink-0">
-              <Link href="/dashboard/new">
-                <Plus className="w-4 h-4 mr-0 sm:mr-2" />
-                <span className="hidden sm:inline">New Note</span>
-              </Link>
-            </Button>
+            {/* === MINIMAL STATS (below bio) === */}
+            <div className="flex items-center gap-6 mt-5 text-sm font-medium text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-2">
+                <Bookmark className="w-4 h-4 text-purple-400" />
+                <span className="text-white dark:text-white/90">{totalNotes}</span>
+                <span>Notes</span>
+              </div>
+              <button
+                onClick={() => openFollowList("followers")}
+                className="flex items-center gap-2 hover:text-purple-300 transition-colors"
+              >
+                <Users className="w-4 h-4 text-purple-400" />
+                <span className="text-white dark:text-white/90">{followersCount}</span>
+                <span>Followers</span>
+              </button>
+              <button
+                onClick={() => openFollowList("following")}
+                className="flex items-center gap-2 hover:text-purple-300 transition-colors"
+              >
+                <UserPlus className="w-4 h-4 text-purple-400" />
+                <span className="text-white dark:text-white/90">{followingCount}</span>
+                <span>Following</span>
+              </button>
+            </div>
           </div>
-        </header>
+        </motion.div>
 
-        {isStatsLoading ? (
-          <div className="w-full h-20 flex justify-center items-center">
-            <Loader2 className="animate-spin text-indigo-500 dark:text-violet-400" />
-          </div>
-        ) : (
-          <DashboardStats stats={stats} />
-        )}
+        <Separator className="max-w-4xl mx-auto" />
 
-        {filteredNotes.length === 0 && notes.length > 0 && debouncedSearchTerm ? (
-          <div className="text-center py-10 text-gray-600 dark:text-gray-400">
-            <AlertCircle className="w-8 h-8 mx-auto mb-3 text-yellow-500" />
-            <p className="text-lg font-semibold">No notes found for "{searchTerm}".</p>
-            <p>Try refining your search terms.</p>
-          </div>
-        ) : (
-          <motion.div
-            variants={{ show: { transition: { staggerChildren: 0.05 } } }}
-            initial="hidden"
-            animate="show"
-            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          >
-            <AnimatePresence>
-              {filteredNotes.map((note) => (
-                <NoteCard
+        {/* === NOTES === */}
+        <motion.div variants={itemVariants}>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-3">
+            <Lightbulb className="h-8 w-8 text-yellow-500" />
+            {isOwnProfile ? "Your Knowledge Notes" : `@${profile.username}'s Knowledge Log`}
+          </h2>
+
+          {notes?.length === 0 ? (
+            <EmptyState username={profile.username} isOwn={isOwnProfile} />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {notes?.map((note) => (
+                <motion.div
                   key={note.id}
-                  note={note}
-                  onView={setSelectedNote}
-                  onDelete={handleDeleteNote}
-                  onShare={setNoteForShare}
-                />
+                  variants={itemVariants}
+                  whileHover={{ y: -4 }}
+                  className="group"
+                >
+                  <MinimalNoteCard
+                    note={note as any}
+                    currentProfileId={currentUserId}
+                    onToggleLike={() => { }}
+                    onOpenDetail={openNote}
+                    onDelete={onDelete}
+                  />
+                </motion.div>
               ))}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </div>
+            </div>
+          )}
+        </motion.div>
+      </motion.div>
 
+      {/* === MODALS === */}
       <NoteDetailModal
         note={selectedNote}
-        isOpen={!!selectedNote}
-        onClose={handleCloseModal}
-        currentProfileId={currentProfileId}
-        onToggleLike={handleToggleLike}
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        currentProfileId={currentUserId}
+        onToggleLike={() => { }}
       />
-      <ShareNoteDialog note={noteForShare} isOpen={!!noteForShare} onOpenChange={() => setNoteForShare(null)} />
-    </TooltipProvider>
+
+      <FollowListModal
+        type={followListType}
+        isOpen={followListOpen}
+        onOpenChange={setFollowListOpen}
+        users={
+          followListType === "followers"
+            ? myProfile?.followers ?? []
+            : myProfile?.following ?? []
+        }
+        userId={targetUserId}
+      />
+    </div>
+  );
+}
+
+/* === Empty State === */
+function EmptyState({ username, isOwn }: { username: string | undefined; isOwn: boolean }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="text-center py-20 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-700"
+    >
+      <Lightbulb className="h-16 w-16 text-yellow-500 mx-auto mb-4 opacity-70" />
+      <p className="text-xl font-medium text-slate-700 dark:text-slate-300">
+        {isOwn ? "Siz hali nota joylamadingiz" : `@${username} hali nota joylamagan`}
+      </p>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+        {isOwn ? "Birinchi fikringizni baham ko‘ring!" : "Ularning birinchi g‘oyasini kutamiz..."}
+      </p>
+      {isOwn && (
+        <Button asChild className="mt-6 bg-gradient-to-r from-indigo-600 to-purple-600">
+          <Link href="/dashboard/new">+ Yangi Nota</Link>
+        </Button>
+      )}
+    </motion.div>
   );
 }

@@ -1,4 +1,4 @@
-// 📁 app/dashboard/notes/types/index.ts
+// 📁 src/types/note.ts
 
 export interface Profile {
   id: number;
@@ -7,6 +7,7 @@ export interface Profile {
   username?: string;
   avatar?: string;
   name?: string;
+  notesCount?: number;
 }
 
 export interface NoteView {
@@ -36,16 +37,20 @@ export interface Note {
   views: NoteView[];
   likes: NoteLike[];
   comments: NoteComment[];
-  totalViews: number;
+  totalViews?: number;
   totalLikes: number;
   totalComments: number;
-  profile: Profile; // Eslatma muallifi
+  commentsCount: number;
+  viewsCount?: number;
+  likesCount?: number;
+  profile: Profile;
   sharedWith?: Profile[];
+  createdAt?: any;
+
 }
 
 export interface User {
-  id: number
-  email: string
-  profile: Profile
+  id: number;
+  email: string;
+  profile: Profile;
 }
-

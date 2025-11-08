@@ -1,4 +1,5 @@
 import api from "@/config/api";
+import { Note } from "@/types";
 
 export interface Profile {
   id: number;
@@ -7,12 +8,19 @@ export interface Profile {
   lastName?: string;
   avatar?: string
   coverImage?: string;
+  notes?: Note[]
+  bio?: string;
+  isFollowing?: boolean
+  notesCount?: number;
+
 }
 
 export interface UserWithProfile {
   id: number;
   email: string;
   profile: Profile;
+  followers?: any[];
+  following?: any[];
 
 }
 
@@ -23,6 +31,10 @@ export const getMyProfile = async (): Promise<UserWithProfile> => {
 
 export const getProfileByUsername = async (username: string): Promise<Profile> => {
   const response = await api.get(`/profile/${username}`);
+  return response.data;
+};
+export const getProfileUsername = async (username: string): Promise<Profile> => {
+  const response = await api.get(`/profile/by-profilename/${username}`);
   return response.data;
 };
 

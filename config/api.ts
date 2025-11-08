@@ -11,9 +11,6 @@ const api = axios.create({
 
 
 
-
-
-
 const authApi = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -72,7 +69,7 @@ api.interceptors.response.use(
       if (originalRequest.url && originalRequest.url.includes('/auth/refresh')) {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
+        // window.location.href = '/login';
         return Promise.reject(error);
       }
 
@@ -114,7 +111,7 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
+        // window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

@@ -1,26 +1,8 @@
 import api from "@/config/api";
-import { NoteComment, NoteLike, NoteView } from "@/types";
+import { Note, NoteComment, NoteLike, NoteView } from "@/types";
 import { Profile } from "./profile-service";
 
-export interface Note {
-  id: number;
-  title: string;
-  content: string;
-  updatedAt: string;
-  views: NoteView[];
-  likes: NoteLike[];
-  isPublic: boolean;
-  comments: NoteComment[];
-  commentsCount?: number;
-  likesCount?: number;
-  viewsCount?: number;
-  profile: Profile;
-  createdAt: string;
-  totalLikes?: string;
-  totalComments?: string;
-  totalViews?: string;
 
-}
 export interface CreateNoteData {
   title: string;
   content: string;

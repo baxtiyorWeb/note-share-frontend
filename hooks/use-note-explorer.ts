@@ -1,7 +1,7 @@
 // hooks/use-note-explorer.ts
 import { useInfiniteQuery, UseInfiniteQueryResult, InfiniteData } from "@tanstack/react-query";
 import { getExploreNotes } from "@/services/notes-service";
-import type { Note } from "@/services/notes-service";
+import { Note } from "@/types";
 
 export type SortBy = "createdAt" | "popular" | "commented";
 
@@ -13,6 +13,8 @@ export interface ExploreFilters {
 export interface NotesPage {
   notes: Note[];
   nextPage: number | undefined;
+  total?: number;
+  pages?: number;
 }
 
 export const useExploreNotes = (

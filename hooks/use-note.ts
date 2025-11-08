@@ -8,8 +8,9 @@ import {
   shareNote,
   getSharedWithMeNotes
 } from '@/services/notes-service';
-import type { Note, CreateNoteData, UpdateNoteData } from '@/services/notes-service';
+import type { CreateNoteData, UpdateNoteData } from '@/services/notes-service';
 import { useState } from 'react';
+import { Note } from '@/types';
 
 export const useNotes = (): UseQueryResult<Note[], Error> => {
   return useQuery({
@@ -64,13 +65,17 @@ export const useCreateNote = (): UseMutationResult<Note, Error, CreateNoteData> 
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           profile: {} as any,
-          views: {} as any,
-          likes: {} as any,
-          comments: [] as any,
-
+          views: [],
+          likes: [],
+          comments: [],
+          totalLikes: 0,
+          totalComments: 0,
+          commentsCount: 0,
+          viewsCount: 0,
         },
         ...old,
       ]);
+
 
       return { previousNotes };
     },

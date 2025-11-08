@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { X, Heart, MessageCircle, Clock, Send, Loader2, Trash2, User, Eye } from "lucide-react";
 
-import type { Note } from "@/services/notes-service";
+import type { Note } from "@/types";
 import type { Comment } from "@/services/note-interactions-service";
 import { useGetComments, useAddComment, useDeleteComment, useToggleLike } from "@/hooks/use-note-interactions";
 import { useMyProfile } from "@/hooks/use-profile";
@@ -146,7 +146,7 @@ const mobileModalVariants: Variants = {
 // Asosiy komponent
 // -----------------------------------------------------------------------------
 interface NoteDetailModalProps {
-  note: Note;
+  note: Note | any;
   isOpen: boolean;
   onClose: () => void;
   currentProfileId?: number;
@@ -172,7 +172,7 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({
   const deleteCommentMutation = useDeleteComment();
   const toggleLikeMutation = useToggleLike(note?.id);
 
-  const isLiked = note?.likes?.some((like) => like.profile?.id === currentProfileId) || false;
+  const isLiked = note?.likes?.some((like: { profile: { id: number } }) => like.profile?.id === currentProfileId) || false;
 
   // Scroll to bottom when new comment added
   useEffect(() => {
@@ -197,7 +197,7 @@ export const NoteDetailModal: React.FC<NoteDetailModalProps> = ({
       }
 
       addCommentMutation.mutate(
-        { noteId: note?.id, text },
+        { noteId: note?.id, text: text },
         {
           onSuccess: () => {
             setCommentText("");
