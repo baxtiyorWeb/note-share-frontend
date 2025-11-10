@@ -48,6 +48,7 @@ export interface Note {
   createdAt?: any;
   is_code_mode?: boolean;
   code_language?: string;
+  reminder_at?: string
 
 }
 

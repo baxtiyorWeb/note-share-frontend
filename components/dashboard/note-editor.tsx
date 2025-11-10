@@ -7,16 +7,17 @@ import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
 import NextLink from "next/link";
-// Dinamik import uchun
 import dynamic from "next/dynamic";
 
-// Monaco Editor komponentini dinamik import qilamiz
 const MonacoEditorWrapper = dynamic(() => import("./../MonacoEditorWrapper"), {
   ssr: false,
-  loading: () => <div className="min-h-[50vh] flex items-center justify-center dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700">Kod muharriri yuklanmoqda...</div>
+  loading: () => (
+    <div className="min-h-[50vh] flex items-center justify-center dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700">
+      Kod muharriri yuklanmoqda...
+    </div>
+  ),
 });
 
-// Qolgan importlar...
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -34,7 +35,6 @@ import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-
 import { motion, AnimatePresence } from "framer-motion";
 
 import {
@@ -58,9 +58,14 @@ import {
   Focus,
   X,
   Code,
+  Calendar,
 } from "lucide-react";
 
-// Qolgan Schema, Templates, ToolbarButton va regex helperlari o'zgarmasdan qoladi...
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format, parse } from "date-fns";
+import { uz } from "date-fns/locale";
+
 const noteSchema = z.object({
   title: z.string().min(1, "Sarlavha kiritilishi shart"),
 });
@@ -105,11 +110,9 @@ const escapeRegExp = (str: string) =>
 
 const applyHighlights = (html: string, plainText: string, errors: any[]) => {
   let result = html;
-
   errors.forEach((err, idx) => {
     const wrong = plainText.substring(err.offset, err.offset + err.length);
     if (!wrong.trim()) return;
-
     const safeWrong = escapeRegExp(wrong);
     const regex = new RegExp(safeWrong, "");
     result = result.replace(
@@ -117,7 +120,6 @@ const applyHighlights = (html: string, plainText: string, errors: any[]) => {
       `<span class="grammar-error" data-idx="${idx}">${wrong}</span>`,
     );
   });
-
   return result;
 };
 
@@ -129,21 +131,24 @@ export function NoteEditor() {
 
   const [isDark, setIsDark] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
-
   const [isCodeMode, setIsCodeMode] = useState(false);
   const [codeContent, setCodeContent] = useState("");
   const [codeLanguage, setCodeLanguage] = useState("javascript");
-
   const [grammarErrors, setGrammarErrors] = useState<any[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [language, setLanguage] = useState("en-US");
   const [translation, setTranslation] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
-
   const [promptText, setPromptText] = useState("");
   const [promptErrors, setPromptErrors] = useState<any[]>([]);
   const [isPromptLoading, setIsPromptLoading] = useState(false);
+
+  // Reminder states
+  const [reminderDate, setReminderDate] = useState<Date | undefined>(undefined);
+  const [reminderTime, setReminderTime] = useState<string>("");
+  const [isReminderOpen, setIsReminderOpen] = useState(false);
+  const [reminderAt, setReminderAt] = useState<string | null>(null); // ISO string
 
   const { data: note, isLoading: isNoteLoading } = useNote(isEdit ? Number(noteId) : 0);
   const createMutation = useCreateNote();
@@ -179,59 +184,92 @@ export function NoteEditor() {
         class: "prose max-w-full focus:outline-none min-h-[50vh] p-4",
       },
     },
+    onUpdate: ({ editor }) => {
+      detectTimeInContent(editor.getText());
+    },
   });
 
+  const detectTimeInContent = (text: string) => {
+    const timeRegex = /(\d{1,2}):(\d{2})(–|\s*-\s*)(\d{1,2}):(\d{2})\s*(AM|PM)?/gi;
+    const match = text.match(timeRegex);
+    if (match) {
+      const detectedTime = match[0];
+      try {
+        const [start, , , , end] = detectedTime.split(/[:–-]/);
+        const parsedStart = parseInt(start.trim());
+        const parsedEnd = parseInt(end.trim());
+        const avgHour = Math.floor((parsedStart + parsedEnd) / 2);
+        setReminderTime(`${avgHour.toString().padStart(2, '0')}:00`);
+        toast.success(`Avtomatik vaqt aniqlandi: ${detectedTime} → ${reminderTime}`);
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  // Draft yuklash
   useEffect(() => {
     if (!editor) return;
     const saved = localStorage.getItem(`note-draft-${noteId || "new"}`);
     if (saved) {
-      const { title, content, isCode, codeLang } = JSON.parse(saved);
+      const { title, content, isCode, codeLang, reminder } = JSON.parse(saved);
       setValue("title", title);
 
       if (isCode) {
         setCodeContent(content);
         setIsCodeMode(true);
-        setCodeLanguage(codeLang || "javascript"); // Saqlangan tilni yuklash
+        setCodeLanguage(codeLang || "javascript");
       } else {
         editor.commands.setContent(content);
         setIsCodeMode(false);
       }
+
+      if (reminder) {
+        setReminderAt(reminder);
+        const dateObj = new Date(reminder);
+        setReminderDate(dateObj);
+        setReminderTime(format(dateObj, "HH:mm"));
+      }
     }
   }, [editor, noteId, setValue]);
 
-  // Draftni avtomatik saqlash (rejimni hisobga olgan holda)
+  // Draft avtomatik saqlash
   useEffect(() => {
     if (!editor) return;
     const handler = setTimeout(() => {
-      const title =
-        (document.querySelector('input[placeholder="Sarlavha..."]') as HTMLInputElement)?.value ||
-        "";
+      const title = (document.querySelector('input[placeholder="Sarlavha..."]') as HTMLInputElement)?.value || "";
       localStorage.setItem(
         `note-draft-${noteId || "new"}`,
         JSON.stringify({
           title,
           content: isCodeMode ? codeContent : editor.getHTML(),
           isCode: isCodeMode,
-          codeLang: codeLanguage, // Code tilini saqlash
+          codeLang: codeLanguage,
+          reminder: reminderAt,
         }),
       );
     }, 1000);
     return () => clearTimeout(handler);
-  }, [editor, noteId, isCodeMode, codeContent, codeLanguage]);
+  }, [editor, noteId, isCodeMode, codeContent, codeLanguage, reminderAt]);
 
-  // Note ni backenddan yuklash (rejimni hisobga olgan holda)
+  // Backenddan note yuklash
   useEffect(() => {
     if (!editor) return;
     if (isEdit && note) {
       setValue("title", note.title);
-      // Backendda note.is_code_mode va note.code_language maydoni mavjud deb faraz qilinadi
       if (note.is_code_mode) {
         setIsCodeMode(true);
         setCodeContent(note.content || "");
-        setCodeLanguage(note.code_language || "javascript"); // Backenddan tilni yuklash
+        setCodeLanguage(note.code_language || "javascript");
       } else {
         setIsCodeMode(false);
         editor.commands.setContent(note.content || "");
+      }
+      if (note.reminder_at) {
+        setReminderAt(note.reminder_at);
+        const dateObj = new Date(note.reminder_at);
+        setReminderDate(dateObj);
+        setReminderTime(format(dateObj, "HH:mm"));
       }
     }
   }, [note, isEdit, setValue, editor]);
@@ -250,13 +288,11 @@ export function NoteEditor() {
 
   const toggleCodeMode = () => {
     setGrammarErrors([]);
-
     if (isCodeMode) {
       editor?.commands.setContent(codeContent);
     } else {
       setCodeContent(getCleanHtml());
     }
-
     setIsCodeMode(!isCodeMode);
   };
 
@@ -270,6 +306,7 @@ export function NoteEditor() {
       content: contentToSave,
       is_code_mode: isCodeMode,
       code_language: isCodeMode ? codeLanguage : null,
+      reminder_at: reminderAt, // Backendga yuboriladi
     };
 
     const mutation = isEdit ? updateMutation : createMutation;
@@ -330,17 +367,15 @@ export function NoteEditor() {
       setTimeout(() => setIsAiLoading(false), 600);
 
       if (!data.matches || data.matches.length === 0) {
-        toast.success("Hech qanday xato topilmadi ✅");
+        toast.success("Hech qanday xato topilmadi");
         setGrammarErrors([]);
         return;
       }
 
       setGrammarErrors(data.matches);
-
       const currentHtml = editor.getHTML();
       const highlightedHtml = applyHighlights(currentHtml, plainText, data.matches);
       editor.commands.setContent(highlightedHtml);
-
       toast.error(`${data.matches.length} ta xato topildi`);
     } catch (e) {
       console.error(e);
@@ -352,10 +387,8 @@ export function NoteEditor() {
 
   const autoFixAll = () => {
     if (!editor || grammarErrors.length === 0) return;
-
     let text = editor.getText();
     const sorted = [...grammarErrors].sort((a, b) => b.offset - a.offset);
-
     sorted.forEach((err) => {
       const suggestion = err.replacements?.[0]?.value;
       if (!suggestion) return;
@@ -363,10 +396,9 @@ export function NoteEditor() {
       const end = start + err.length;
       text = text.slice(0, start) + suggestion + text.slice(end);
     });
-
     editor.commands.setContent(text);
     setGrammarErrors([]);
-    toast.success("Barcha xatolar avtomatik tuzatildi ✅");
+    toast.success("Barcha xatolar avtomatik tuzatildi");
   };
 
   const handleTranslate = async () => {
@@ -442,6 +474,26 @@ export function NoteEditor() {
     setIsTemplatesOpen(false);
   };
 
+  const setReminder = () => {
+    if (!reminderDate || !reminderTime) {
+      toast.error("Sana va vaqtni tanlang");
+      return;
+    }
+    const [hours, minutes] = reminderTime.split(":").map(Number);
+    const fullDate = new Date(reminderDate);
+    fullDate.setHours(hours, minutes, 0, 0);
+    const isoString = fullDate.toISOString();
+    setReminderAt(isoString);
+    setIsReminderOpen(false);
+    toast.success(`Eslatma o'rnatildi: ${format(fullDate, "PPP pp", { locale: uz })}`);
+  };
+
+  const clearReminder = () => {
+    setReminderAt(null);
+    setReminderDate(undefined);
+    setReminderTime("");
+    toast.success("Eslatma o'chirildi");
+  };
 
   if (isNoteLoading && isEdit) {
     return (
@@ -484,7 +536,6 @@ export function NoteEditor() {
             </div>
 
             <div className="flex items-center gap-2">
-
               {isCodeMode ? (
                 <select
                   value={codeLanguage}
@@ -515,13 +566,16 @@ export function NoteEditor() {
                 </select>
               )}
 
-
               <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)}>
                 {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </Button>
 
-
-              <Button variant="ghost" size="icon" onClick={toggleCodeMode} title={isCodeMode ? "Note Editorga o‘tish" : "Code Editorga o‘tish"}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleCodeMode}
+                title={isCodeMode ? "Note Editorga o‘tish" : "Code Editorga o‘tish"}
+              >
                 {isCodeMode ? <BookOpen className="w-5 h-5 text-indigo-600" /> : <Code className="w-5 h-5" />}
               </Button>
             </div>
@@ -535,7 +589,6 @@ export function NoteEditor() {
           <div className="bg-white dark:bg-gray-950 rounded-xl shadow-lg p-4 min-h-full">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
-
                 {isCodeMode ? (
                   <MonacoEditorWrapper
                     value={codeContent}
@@ -710,18 +763,14 @@ export function NoteEditor() {
             </ToolbarButton>
             <ToolbarButton
               isActive={editor.isActive("heading", { level: 1 })}
-              onClick={() =>
-                editor.chain().focus().toggleHeading({ level: 1 }).run()
-              }
+              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
               title="H1"
             >
               <Heading1 />
             </ToolbarButton>
             <ToolbarButton
               isActive={editor.isActive("heading", { level: 2 })}
-              onClick={() =>
-                editor.chain().focus().toggleHeading({ level: 2 }).run()
-              }
+              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
               title="H2"
             >
               <Heading2 />
@@ -748,7 +797,6 @@ export function NoteEditor() {
               <ImageIcon />
             </ToolbarButton>
 
-            {/* Templates */}
             <Sheet open={isTemplatesOpen} onOpenChange={setIsTemplatesOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-10 w-10">
@@ -773,6 +821,7 @@ export function NoteEditor() {
                 </div>
               </SheetContent>
             </Sheet>
+
             <Button
               size="icon"
               variant="ghost"
@@ -786,6 +835,44 @@ export function NoteEditor() {
                 <Sparkles />
               )}
             </Button>
+
+            <Popover open={isReminderOpen} onOpenChange={setIsReminderOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10"
+                  title="Eslatma o'rnatish"
+                >
+                  <Calendar className={cn("w-5 h-5", reminderAt && "text-indigo-600")} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4">
+                <div className="space-y-4">
+                  <CalendarComponent
+                    mode="single"
+                    selected={reminderDate}
+                    onSelect={setReminderDate}
+                    initialFocus
+                    className="rounded-md border"
+                  />
+                  <Input
+                    type="time"
+                    value={reminderTime}
+                    onChange={(e) => setReminderTime(e.target.value)}
+                    className="w-full"
+                  />
+                  <div className="flex gap-2">
+                    <Button onClick={setReminder} className="flex-1">
+                      O‘rnatish
+                    </Button>
+                    <Button variant="destructive" onClick={clearReminder} className="flex-1">
+                      O‘chirish
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
 
             <Button
               onClick={handleSubmit(handleSave)}

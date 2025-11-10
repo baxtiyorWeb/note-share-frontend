@@ -7,14 +7,17 @@ import { Sidebar } from "@/components/dashboard/sidebar" // <-- Asl Sidebar impo
 import { Menu } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { MobileSidebar } from "./mobile-sidebar"
+import { OneSignalClient } from "../OneSignalClient"
 
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
+
+
   return (
     <div className="min-h-screen flex bg-slate-100 dark:bg-slate-900">
-
+      <OneSignalClient />
       <Sidebar />
 
       <MobileSidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
