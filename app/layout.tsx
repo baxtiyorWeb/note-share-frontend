@@ -7,7 +7,7 @@ import { QueryProvider } from "@/lib/query-provider";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "react-hot-toast";
-import { OneSignalClient } from "@/components/OneSignalClient"; // 🆕 qo‘shildi
+import { OneSignalClient } from "@/components/OneSignalClient";
 
 export const metadata: Metadata = {
   title: "NoteShare - Eslatmalar va Kod",
@@ -20,7 +20,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="uz" suppressHydrationWarning>
       <head>
-        <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
       </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
         <QueryProvider>
@@ -28,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
               {children}
               <Toaster position="top-right" />
-              <OneSignalClient /> {/* 🔥 Bu clientda ishlaydi */}
+              <OneSignalClient />
             </ThemeProvider>
           </Suspense>
           <Analytics />

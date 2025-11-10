@@ -17,7 +17,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex bg-slate-100 dark:bg-slate-900">
-      <OneSignalClient />
       <Sidebar />
 
       <MobileSidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
