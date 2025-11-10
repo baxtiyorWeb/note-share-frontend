@@ -11,7 +11,7 @@ export const OneSignalClient = () => {
       if (typeof window === "undefined") return;
 
       await OneSignal.init({
-        appId: "39374148-0bc5-4d2b-80bb-510a3aa0c615",
+        appId: "5abeb0e2-d77e-40f2-adb6-09619829771e",
         allowLocalhostAsSecureOrigin: true,
 
         notifyButton: {
