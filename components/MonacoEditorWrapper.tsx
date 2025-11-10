@@ -9,22 +9,18 @@ interface MonacoEditorProps {
   value: string;
   onChange: (value: string | undefined) => void;
   language: string;
-  isDark: boolean;
 }
 
 const MonacoEditorWrapper: React.FC<MonacoEditorProps> = ({
   value,
   onChange,
   language,
-  isDark,
 }) => {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 
-  const editorTheme = isDark ? "vs-dark" : "vs-light";
 
-  const handleEditorDidMount: OnMount = (editor, monacoInstance) => {
+  const handleEditorDidMount: OnMount = (editor,) => {
     editorRef.current = editor;
-    monacoInstance.editor.setTheme(editorTheme);
   };
 
   const handleEditorChange: OnChange = (value, event) => {
@@ -61,7 +57,6 @@ const MonacoEditorWrapper: React.FC<MonacoEditorProps> = ({
         height="50vh"
         language={language.toLowerCase()}
         value={value}
-        theme={editorTheme}
         options={options}
         onMount={handleEditorDidMount}
         onChange={handleEditorChange}

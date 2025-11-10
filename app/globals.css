@@ -298,3 +298,11 @@ input:focus-visible {
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #475569;
 }
+
+.time-highlight {
+  background-color: rgba(99, 102, 241, 0.15);
+  border-radius: 4px;
+  padding: 0 4px;
+  color: #4f46e5;
+  font-weight: 500;
+}

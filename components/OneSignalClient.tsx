@@ -1,6 +1,8 @@
 "use client";
 
+import api from "@/config/api";
 import { useEffect } from "react";
+import toast from "react-hot-toast";
 import OneSignal from "react-onesignal";
 
 export const OneSignalClient = () => {
@@ -18,13 +20,11 @@ export const OneSignalClient = () => {
           prenotify: true,
           showCredit: false,
 
-          // ✅ Xato 1 uchun yechim: Barcha talab qilinadigan matn kalitlari qo‘shildi
           text: {
             "tip.state.unsubscribed": "Enable notifications",
             "tip.state.subscribed": "You’re subscribed",
             "tip.state.blocked": "You’ve blocked notifications",
 
-            // Minimal qo‘shilgan kalitlar (tur xatosini tuzatish uchun)
             "dialog.blocked.title": "Notifications Blocked",
             "dialog.blocked.message": "Follow these instructions to enable notifications.",
             "dialog.main.title": "Manage Notifications",
@@ -38,13 +38,12 @@ export const OneSignalClient = () => {
           },
         },
 
-        // ✅ Xato 2 uchun yechim: Yangi `slidedown` formatiga o‘tkazildi
         promptOptions: {
-          slidedown: { // 👈 YANGI: promptOptions endi `slidedown` obyektini o‘z ichiga oladi
+          slidedown: {
             prompts: [
               {
                 type: "push",
-                autoPrompt: false,
+                autoPrompt: true,
                 delay: {
                   timeDelay: 3,
                 },
@@ -55,11 +54,37 @@ export const OneSignalClient = () => {
         },
       });
 
-      // ⚠️ Avtomatik prompt yoqilgani uchun bu qism endi kerak emas va olib tashlandi
-      // const isPushEnabled = await OneSignal.isPushNotificationsEnabled();
-      // if (!isPushEnabled) {
-      //   await OneSignal.Slidedown.promptPush();
-      // }
+      OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
+        const playerId = event.current.id || OneSignal.User.PushSubscription.id;
+
+        if (playerId) {
+          console.log("🎯 OneSignal Player ID:", playerId);
+
+          const token = localStorage.getItem("access_token");
+          if (!token) {
+            console.warn("⚠️ Token topilmadi — foydalanuvchi login qilmagan");
+            return;
+          }
+
+          try {
+            // 🔥 Backend’ga yuborish
+            await api.post(
+              "/users/onesignal",
+              { playerId },
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+
+            console.log("✅ Player ID backendda saqlandi:", playerId);
+            toast.success("Notification ID saqlandi 🔔");
+          } catch (error) {
+            console.error("❌ Player ID saqlanmadi:", error);
+            toast.error("Player ID yuborishda xatolik");
+          }
+        }
+      });
+
     };
 
     initOneSignal();

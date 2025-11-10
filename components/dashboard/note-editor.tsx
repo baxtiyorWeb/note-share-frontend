@@ -13,7 +13,7 @@ const MonacoEditorWrapper = dynamic(() => import("./../MonacoEditorWrapper"), {
   ssr: false,
   loading: () => (
     <div className="min-h-[50vh] flex items-center justify-center dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700">
-      Kod muharriri yuklanmoqda...
+      <LoadingState />
     </div>
   ),
 });
@@ -49,22 +49,18 @@ import {
   List,
   ListOrdered,
   Image as ImageIcon,
-  Link2,
   BookOpen,
   Sparkles,
   Wand2,
-  Moon,
-  Sun,
-  Focus,
-  X,
   Code,
   Calendar,
 } from "lucide-react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
 import { uz } from "date-fns/locale";
+import { LoadingState } from "../loading";
 
 const noteSchema = z.object({
   title: z.string().min(1, "Sarlavha kiritilishi shart"),
@@ -129,7 +125,6 @@ export function NoteEditor() {
   const noteId = Array.isArray(id) ? id[0] : id;
   const isEdit = !!noteId;
 
-  const [isDark, setIsDark] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isCodeMode, setIsCodeMode] = useState(false);
   const [codeContent, setCodeContent] = useState("");
@@ -137,18 +132,13 @@ export function NoteEditor() {
   const [grammarErrors, setGrammarErrors] = useState<any[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [language, setLanguage] = useState("en-US");
-  const [translation, setTranslation] = useState("");
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [promptText, setPromptText] = useState("");
-  const [promptErrors, setPromptErrors] = useState<any[]>([]);
-  const [isPromptLoading, setIsPromptLoading] = useState(false);
+  const [language,] = useState("en-US");
 
-  // Reminder states
   const [reminderDate, setReminderDate] = useState<Date | undefined>(undefined);
   const [reminderTime, setReminderTime] = useState<string>("");
   const [isReminderOpen, setIsReminderOpen] = useState(false);
-  const [reminderAt, setReminderAt] = useState<string | null>(null); // ISO string
+  const [reminderAt, setReminderAt] = useState<string | null>(null);
+  const [lastDetectedTime, setLastDetectedTime] = useState<string | null>(null);
 
   const { data: note, isLoading: isNoteLoading } = useNote(isEdit ? Number(noteId) : 0);
   const createMutation = useCreateNote();
@@ -165,6 +155,43 @@ export function NoteEditor() {
   });
 
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const detectTimeInContent = (text: string) => {
+    const timeRegex =
+      /(\d{1,2}):(\d{2})(?:\s?(AM|PM))?(?:\s*[-–]\s*(\d{1,2}):(\d{2})(?:\s?(AM|PM))?)?/gi;
+
+    const matches = [...text.matchAll(timeRegex)];
+
+    if (matches.length === 0) return;
+
+    const match = matches[matches.length - 1];
+    const [fullMatch, h1, m1, ampm1, h2, m2, ampm2] = match;
+
+    if (fullMatch === lastDetectedTime) return;
+
+    try {
+      const startHour = parseInt(h1, 10);
+      const endHour = h2 ? parseInt(h2, 10) : startHour;
+      const avgHour = Math.floor((startHour + endHour) / 2);
+
+      const hour = avgHour.toString().padStart(2, "0");
+      const minute = m1 || "00";
+      const timeString = `${hour}:${minute}`;
+
+      setReminderTime(timeString);
+      setLastDetectedTime(fullMatch);
+
+      toast.success(`⏰ Avtomatik vaqt aniqlandi: ${fullMatch} → ${timeString}`);
+    } catch {
+      // noto‘g‘ri format bo‘lsa e’tiborga olinmaydi
+    }
+  };
+
+  const highlightTimes = (html: string) => {
+    return html.replace(
+      /(\d{1,2}:\d{2}\s?(?:AM|PM)?\s*[-–]\s*\d{1,2}:\d{2}\s?(?:AM|PM)?)/gi,
+      '<span class="time-highlight">$1</span>'
+    );
+  };
 
   const editor = useEditor({
     extensions: [
@@ -181,33 +208,25 @@ export function NoteEditor() {
     content: "",
     editorProps: {
       attributes: {
-        class: "prose max-w-full focus:outline-none min-h-[50vh] p-4",
+        class:
+          "prose max-w-full focus:outline-none min-h-[50vh] p-4",
       },
     },
     onUpdate: ({ editor }) => {
-      detectTimeInContent(editor.getText());
+      const html = editor.getHTML();
+      const text = editor.getText();
+
+      detectTimeInContent(text);
+
+      // highlight qilingan versiyani editor’ga qayta qo‘yamiz
+      const newHtml = highlightTimes(html);
+      if (newHtml !== html) {
+        editor.commands.setContent(newHtml);
+      }
     },
   });
 
-  const detectTimeInContent = (text: string) => {
-    const timeRegex = /(\d{1,2}):(\d{2})(–|\s*-\s*)(\d{1,2}):(\d{2})\s*(AM|PM)?/gi;
-    const match = text.match(timeRegex);
-    if (match) {
-      const detectedTime = match[0];
-      try {
-        const [start, , , , end] = detectedTime.split(/[:–-]/);
-        const parsedStart = parseInt(start.trim());
-        const parsedEnd = parseInt(end.trim());
-        const avgHour = Math.floor((parsedStart + parsedEnd) / 2);
-        setReminderTime(`${avgHour.toString().padStart(2, '0')}:00`);
-        toast.success(`Avtomatik vaqt aniqlandi: ${detectedTime} → ${reminderTime}`);
-      } catch {
-        // ignore
-      }
-    }
-  };
 
-  // Draft yuklash
   useEffect(() => {
     if (!editor) return;
     const saved = localStorage.getItem(`note-draft-${noteId || "new"}`);
@@ -233,7 +252,6 @@ export function NoteEditor() {
     }
   }, [editor, noteId, setValue]);
 
-  // Draft avtomatik saqlash
   useEffect(() => {
     if (!editor) return;
     const handler = setTimeout(() => {
@@ -252,7 +270,6 @@ export function NoteEditor() {
     return () => clearTimeout(handler);
   }, [editor, noteId, isCodeMode, codeContent, codeLanguage, reminderAt]);
 
-  // Backenddan note yuklash
   useEffect(() => {
     if (!editor) return;
     if (isEdit && note) {
@@ -274,9 +291,7 @@ export function NoteEditor() {
     }
   }, [note, isEdit, setValue, editor]);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDark);
-  }, [isDark]);
+
 
   const getCleanHtml = () => {
     if (!editor) return "";
@@ -401,73 +416,8 @@ export function NoteEditor() {
     toast.success("Barcha xatolar avtomatik tuzatildi");
   };
 
-  const handleTranslate = async () => {
-    if (!editor) return;
-    const text = isCodeMode ? codeContent.trim() : editor.getText().trim();
-    if (!text) {
-      toast.error("Tarjima uchun matn yo‘q");
-      return;
-    }
-    setIsTranslating(true);
-    setTranslation("");
 
-    try {
-      const res = await fetch("https://libretranslate.de/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          q: text,
-          source: "en",
-          target: "uz",
-          format: "text",
-        }),
-      });
 
-      const data = await res.json();
-      if (data?.translatedText) {
-        setTranslation(data.translatedText);
-      } else {
-        toast.error("Tarjima olinmadi");
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error("Tarjima xatosi");
-    } finally {
-      setIsTranslating(false);
-    }
-  };
-
-  const checkPromptGrammar = async () => {
-    const text = promptText.trim();
-    if (!text) {
-      toast.error("Prompt matni bo‘sh");
-      return;
-    }
-
-    setIsPromptLoading(true);
-    setPromptErrors([]);
-
-    try {
-      const res = await fetch("https://api.languagetool.org/v2/check", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          text,
-          language,
-          level: "picky",
-          enabledOnly: "false",
-        }),
-      });
-
-      const data = await res.json();
-      setPromptErrors(data.matches || []);
-    } catch (e) {
-      console.error(e);
-      toast.error("Prompt AI tekshiruvda xatolik");
-    } finally {
-      setIsPromptLoading(false);
-    }
-  };
 
   const insertTemplate = (content: string) => {
     editor?.chain().focus().insertContent(content).run();
@@ -507,8 +457,8 @@ export function NoteEditor() {
     <TooltipProvider>
       <div
         className={cn(
-          "min-h-screen flex flex-col",
-          isDark ? "dark bg-gray-900" : "bg-gradient-to-br from-indigo-50 to-gray-100",
+          "min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 to-gray-100 dark:from-gray-900 dark:to-gray-950",
+
         )}
       >
         <style jsx global>{`
@@ -529,14 +479,14 @@ export function NoteEditor() {
                 </NextLink>
               </Button>
               <Input
-                placeholder="Sarlavha..."
+                placeholder="Title..."
                 {...register("title")}
                 className="text-xl font-bold border-none bg-transparent flex-1"
               />
             </div>
 
             <div className="flex items-center gap-2">
-              {isCodeMode ? (
+              {isCodeMode && (
                 <select
                   value={codeLanguage}
                   onChange={(e) => setCodeLanguage(e.target.value)}
@@ -552,23 +502,9 @@ export function NoteEditor() {
                   <option value="java">Java</option>
                   <option value="csharp">C#</option>
                 </select>
-              ) : (
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="border border-indigo-200 dark:border-indigo-700 rounded-md px-2 py-1 text-sm dark:bg-gray-900 dark:text-white"
-                >
-                  <option value="en-US">English (US)</option>
-                  <option value="en-GB">English (UK)</option>
-                  <option value="ru-RU">Русский</option>
-                  <option value="de-DE">Deutsch</option>
-                  <option value="uz">O‘zbek</option>
-                </select>
               )}
 
-              <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)}>
-                {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </Button>
+
 
               <Button
                 variant="ghost"
@@ -594,7 +530,6 @@ export function NoteEditor() {
                     value={codeContent}
                     onChange={(value) => setCodeContent(value ?? "")}
                     language={codeLanguage}
-                    isDark={isDark}
                   />
                 ) : (
                   editor && <EditorContent editor={editor} />
@@ -662,78 +597,6 @@ export function NoteEditor() {
                 )}
               </div>
 
-              <aside className="w-full md:w-80 space-y-4">
-                <div className="border border-indigo-100 dark:border-indigo-800 rounded-lg p-3 bg-indigo-50/60 dark:bg-indigo-950/40">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-semibold text-indigo-700 dark:text-indigo-200 text-sm">
-                      Tarjima (English → Uzbek)
-                    </p>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                      onClick={handleTranslate}
-                      disabled={isTranslating}
-                    >
-                      {isTranslating ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                  {translation ? (
-                    <p className="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap">
-                      {translation}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-500">
-                      Matnni muharrirga yozing va yuqoridagi tugmani bosing.
-                    </p>
-                  )}
-                </div>
-
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900/50">
-                  <p className="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-100">
-                    Prompt / Kichik matn uchun AI check
-                  </p>
-                  <textarea
-                    className="w-full text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2 mb-2 resize-none h-20"
-                    placeholder="Masalan: Yesterday I go to school with my friend..."
-                    value={promptText}
-                    onChange={(e) => setPromptText(e.target.value)}
-                  />
-                  <Button
-                    size="sm"
-                    className="w-full mb-2"
-                    variant="outline"
-                    onClick={checkPromptGrammar}
-                    disabled={isPromptLoading}
-                  >
-                    {isPromptLoading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 mr-2" />
-                    )}
-                    Promptni tekshirish
-                  </Button>
-                  {promptErrors.length > 0 && (
-                    <ul className="text-xs space-y-1 max-h-28 overflow-auto">
-                      {promptErrors.map((e, i) => {
-                        const w = promptText.substring(e.offset, e.offset + e.length);
-                        const sug = e.replacements?.[0]?.value || "taklif yo‘q";
-                        return (
-                          <li key={i}>
-                            <span className="font-semibold text-red-500">“{w}”</span> →{" "}
-                            {e.message} (
-                            <span className="text-indigo-600">{sug}</span>)
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </div>
-              </aside>
             </div>
           </div>
         </main>
@@ -743,10 +606,11 @@ export function NoteEditor() {
             <ToolbarButton
               isActive={editor.isActive("bold")}
               onClick={() => editor.chain().focus().toggleBold().run()}
-              title="Qalin"
+              title="Bold"
             >
               <Bold />
             </ToolbarButton>
+
             <ToolbarButton
               isActive={editor.isActive("italic")}
               onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -754,45 +618,50 @@ export function NoteEditor() {
             >
               <Italic />
             </ToolbarButton>
+
             <ToolbarButton
               isActive={editor.isActive("underline")}
               onClick={() => editor.chain().focus().toggleUnderline().run()}
-              title="Tag chiziq"
+              title="Underline"
             >
               <UnderlineIcon />
             </ToolbarButton>
+
             <ToolbarButton
               isActive={editor.isActive("heading", { level: 1 })}
               onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-              title="H1"
+              title="Heading 1"
             >
               <Heading1 />
             </ToolbarButton>
+
             <ToolbarButton
               isActive={editor.isActive("heading", { level: 2 })}
               onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-              title="H2"
+              title="Heading 2"
             >
               <Heading2 />
             </ToolbarButton>
+
             <ToolbarButton
               isActive={editor.isActive("bulletList")}
               onClick={() => editor.chain().focus().toggleBulletList().run()}
-              title="Nuqtali ro‘yxat"
+              title="Bullet List"
             >
               <List />
             </ToolbarButton>
+
             <ToolbarButton
               isActive={editor.isActive("orderedList")}
               onClick={() => editor.chain().focus().toggleOrderedList().run()}
-              title="Raqamli ro‘yxat"
+              title="Numbered List"
             >
               <ListOrdered />
             </ToolbarButton>
 
             <ToolbarButton
               onClick={() => imageInputRef.current?.click()}
-              title="Rasm qo‘shish"
+              title="Insert Image"
             >
               <ImageIcon />
             </ToolbarButton>
@@ -805,7 +674,7 @@ export function NoteEditor() {
               </SheetTrigger>
               <SheetContent side="bottom" className="h-96">
                 <SheetHeader>
-                  <SheetTitle>Andozalar</SheetTitle>
+                  <SheetTitle>Templates</SheetTitle>
                 </SheetHeader>
                 <div className="space-y-2 mt-4">
                   {templates.map((t, i) => (
@@ -828,6 +697,7 @@ export function NoteEditor() {
               onClick={checkGrammar}
               disabled={isAiLoading}
               className="h-10 w-10"
+              title="Check Grammar"
             >
               {isAiLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
@@ -842,7 +712,7 @@ export function NoteEditor() {
                   variant="ghost"
                   size="icon"
                   className="h-10 w-10"
-                  title="Eslatma o'rnatish"
+                  title="Set Reminder"
                 >
                   <Calendar className={cn("w-5 h-5", reminderAt && "text-indigo-600")} />
                 </Button>
@@ -864,10 +734,14 @@ export function NoteEditor() {
                   />
                   <div className="flex gap-2">
                     <Button onClick={setReminder} className="flex-1">
-                      O‘rnatish
+                      Set Time
                     </Button>
-                    <Button variant="destructive" onClick={clearReminder} className="flex-1">
-                      O‘chirish
+                    <Button
+                      variant="destructive"
+                      onClick={clearReminder}
+                      className="flex-1"
+                    >
+                      Delete Time
                     </Button>
                   </div>
                 </div>
@@ -884,10 +758,11 @@ export function NoteEditor() {
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Saqlash
+              Save
             </Button>
           </div>
         )}
+
 
         {isCodeMode && (
           <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t border-indigo-200 dark:border-indigo-800 p-2 flex justify-end z-20">
@@ -901,7 +776,7 @@ export function NoteEditor() {
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Saqlash
+              Save
             </Button>
           </div>
         )}
