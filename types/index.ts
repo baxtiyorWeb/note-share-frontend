@@ -48,7 +48,13 @@ export interface Note {
   createdAt?: any;
   is_code_mode?: boolean;
   code_language?: string;
-  reminder_at?: string
+  reminder_at?: string;
+  tags?: string;
+  isPublic?: boolean;
+  seo_slug?: string;
+  visibility?: 'public' | 'private' | 'unlisted';
+  allow_comments?: boolean;
+  share_to_twitter?: boolean;
 
 }
 
