@@ -521,7 +521,7 @@ export function NoteEditor() {
           )}
         </header>
 
-        <main className="flex-1 p-4 pb-24">
+        <main className="flex-1 p-4 ">
           <div className="bg-white dark:bg-gray-950 rounded-xl shadow-lg p-4 min-h-full">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
@@ -602,7 +602,7 @@ export function NoteEditor() {
         </main>
 
         {editor && !isCodeMode && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t border-indigo-200 dark:border-indigo-800 p-2 flex flex-wrap gap-1 justify-center z-20">
+          <div className="fixed bottom-16 left-0 right-0 bg-white dark:bg-gray-950 border-t border-indigo-200 dark:border-indigo-800 p-2 flex flex-wrap gap-1 justify-center z-20">
             <ToolbarButton
               isActive={editor.isActive("bold")}
               onClick={() => editor.chain().focus().toggleBold().run()}
