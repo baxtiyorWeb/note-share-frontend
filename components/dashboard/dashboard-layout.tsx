@@ -15,7 +15,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
 
   return (
-    <div className="min-h-screen flex bg-slate-100 dark:bg-slate-900">
+    <div className="min-h-screen flex bg-slate-100 dark:bg-slate-900 mb-20 lg:pb-0">
       <Sidebar />
 
       <BottomBar />
