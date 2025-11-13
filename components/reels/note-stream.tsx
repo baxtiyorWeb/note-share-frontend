@@ -202,21 +202,7 @@ export default function NoteStreamPage() {
           <div className="absolute inset-0 bg-gradient-to-tr from-violet-800/30 via-purple-800/20 to-pink-800/30 blur-3xl" />
         </div>
 
-        {/* Header - Premium Status */}
-        <div className="absolute top-0 left-0 right-0 z-20 p-4 md:p-6 flex items-center justify-between text-white">
-          <h1 className="text-2xl md:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-pink-400 drop-shadow-lg">
-            NoteStream
-          </h1>
-          <Button
-            className={cn(
-              "rounded-full px-4 py-2 text-sm md:text-base font-semibold transition-all duration-300 shadow-xl",
-              isSubscriber ? "bg-green-500 hover:bg-green-600 text-white" : "bg-yellow-500 hover:bg-yellow-600 text-black"
-            )}
-            onClick={subscribeToPremium}
-          >
-            {isSubscriber ? <><UserCheck className="w-4 h-4 mr-2" /> Premium Active</> : <><Zap className="w-4 h-4 mr-2 fill-black" /> Get Premium</>}
-          </Button>
-        </div>
+
 
 
         {/* Carousel - Responsive */}
@@ -232,9 +218,9 @@ export default function NoteStreamPage() {
                     key={reel.id}
                     className="embla__slide flex-none"
                     style={{
-                      width: isMobile ? '320px' : '420px',
-                      paddingLeft: isMobile ? '16px' : '32px',
-                      paddingRight: isMobile ? '16px' : '32px'
+                      width: isMobile ? '100%' : '420px',
+                      paddingLeft: isMobile ? '0' : '32px',
+                      paddingRight: isMobile ? '0' : '32px'
                     }}
                   >
                     <motion.div
@@ -254,7 +240,7 @@ export default function NoteStreamPage() {
                           "bg-gradient-to-br from-white/8 to-white/4 backdrop-blur-3xl",
                           "border border-white/20",
                           "before:absolute before:inset-0 before:bg-gradient-to-t before:from-black/70 before:via-black/30 before:to-transparent",
-                          isActive && "ring-4 ring-violet-500/60 shadow-violet-500/40"
+                          isActive && "ring-0 ring-violet-500/60 shadow-violet-500/40"
                         )}
                         style={{ height: isMobile ? '570px' : '680px' }}
                         whileHover={isActive ? { scale: 1.02 } : {}}
@@ -397,7 +383,7 @@ export default function NoteStreamPage() {
                         </div>
 
                         {/* Sound (Pastki Qismda) */}
-                        <div className="absolute bottom-[100px] right-4 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full text-white/80 text-sm md:text-base flex items-center gap-2">
+                        <div className="absolute bottom-[190px] left-5 bg-black/40 backdrop-blur-md px-2 py-1 rounded-full text-white/80 text-sm md:text-base flex items-center gap-2">
                           <Volume2 className="w-4 h-4 md:w-5 md:h-5" />
                           {reel.sound}
                         </div>
