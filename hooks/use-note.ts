@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+// hooks/use-note.ts
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createNote,
   getAllNotes,
@@ -6,173 +7,119 @@ import {
   updateNote,
   deleteNote,
   shareNote,
-  getSharedWithMeNotes
-} from '@/services/notes-service';
-import type { CreateNoteData, UpdateNoteData } from '@/services/notes-service';
-import { useState } from 'react';
-import { Note } from '@/types';
+  getSharedWithMeNotes,
+  saveNote,
+  unsaveNote,
+  getSavedNotes,
+} from "@/services/notes-service";
+import { Note } from "@/types";
+import toast from "react-hot-toast";
 
-export const useNotes = (): UseQueryResult<Note[], Error> => {
+export const useNotes = () => {
   return useQuery({
-    queryKey: ['notes'],
+    queryKey: ["notes"],
     queryFn: getAllNotes,
   });
 };
 
-export const useNote = (id: number): UseQueryResult<Note, Error> => {
+export const useSavedNotes = () => {
   return useQuery({
-    queryKey: ['note', id],
-    queryFn: async () => await getNoteById(id),
+    queryKey: ["saved-notes"],
+    queryFn: getSavedNotes,
+  });
+};
+
+export const useNote = (id: number) => {
+  return useQuery({
+    queryKey: ["note", id],
+    queryFn: () => getNoteById(id),
     enabled: !!id,
   });
 };
 
-
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-export const useUploadImage = () => {
-  const [isPending, setIsPending] = useState(false);
-
-  const mutate = async (file: File, options: { onSuccess: (data: { url: string }) => void; onError: (error: Error) => void; }) => {
-    setIsPending(true);
-    await sleep(1000);
-
-    const mockUrl = URL.createObjectURL(file);
-
-    options.onSuccess({ url: mockUrl });
-    setIsPending(false);
-  };
-
-  return { mutate, isPending };
-};
-
-export const useCreateNote = (): UseMutationResult<Note, Error, CreateNoteData> => {
-  const queryClient = useQueryClient();
-
+export const useCreateNote = () => {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: createNote,
-    onMutate: async (newNote) => {
-      await queryClient.cancelQueries({ queryKey: ['notes'] });
-
-      const previousNotes = queryClient.getQueryData<Note[]>(['notes']);
-
-      queryClient.setQueryData<Note[]>(['notes'], (old = []) => [
-        {
-          id: Date.now(),
-          title: newNote.title,
-          content: newNote.content,
-          isPublic: newNote.isPublic,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          profile: {} as any,
-          views: [],
-          likes: [],
-          comments: [],
-          totalLikes: 0,
-          totalComments: 0,
-          commentsCount: 0,
-          viewsCount: 0,
-        },
-        ...old,
-      ]);
-
-
-      return { previousNotes };
-    },
-    onError: (err, newNote, context) => {
-      if (context?.previousNotes) {
-        queryClient.setQueryData(['notes'], context.previousNotes);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] });
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notes"] });
+      toast.success("Note created!");
     },
   });
-
 };
 
-export const useUpdateNote = (): UseMutationResult<Note, Error, { id: number; data: UpdateNoteData }> => {
-  const queryClient = useQueryClient();
-
+export const useUpdateNote = () => {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }) => updateNote(id, data),
-    onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: ['notes'] });
-      await queryClient.cancelQueries({ queryKey: ['note', id] });
-
-      const previousNotes = queryClient.getQueryData<Note[]>(['notes']);
-      const previousNote = queryClient.getQueryData<Note>(['note', id]);
-
-      queryClient.setQueryData<Note[]>(['notes'], (old = []) =>
-        old.map(note => (note.id === id ? { ...note, ...data } : note))
-      );
-
-      if (previousNote) {
-        queryClient.setQueryData<Note>(['note', id], { ...previousNote, ...data });
-      }
-
-      return { previousNotes, previousNote };
-    },
-    onError: (err, variables, context) => {
-      if (context?.previousNotes) {
-        queryClient.setQueryData(['notes'], context.previousNotes);
-      }
-      if (context?.previousNote) {
-        queryClient.setQueryData(['note', variables.id], context.previousNote);
-      }
-    },
-    onSettled: (data, error, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] });
-      queryClient.invalidateQueries({ queryKey: ['note', variables.id] });
+    mutationFn: ({ id, data }: { id: number; data: any }) => updateNote(id, data),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ["notes"] });
+      qc.invalidateQueries({ queryKey: ["note", id] });
+      qc.invalidateQueries({ queryKey: ["saved-notes"] });
+      toast.success("Note updated!");
     },
   });
 };
 
-export const useDeleteNote = (): UseMutationResult<void, Error, number> => {
-  const queryClient = useQueryClient();
-
+export const useDeleteNote = () => {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteNote,
-    onMutate: async (noteId) => {
-      await queryClient.cancelQueries({ queryKey: ['notes'] });
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notes"] });
+      qc.invalidateQueries({ queryKey: ["saved-notes"] });
+      toast.success("Note deleted!");
+    },
+  });
+};
 
-      const previousNotes = queryClient.getQueryData<Note[]>(['notes']);
+export const useToggleSaveNote = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ noteId, isSaved }: { noteId: number; isSaved: boolean }) =>
+      isSaved ? unsaveNote(noteId) : saveNote(noteId),
+    onMutate: async ({ noteId, isSaved }) => {
+      await qc.cancelQueries({ queryKey: ["notes"] });
+      await qc.cancelQueries({ queryKey: ["saved-notes"] });
+      await qc.cancelQueries({ queryKey: ["note", noteId] });
 
-      queryClient.setQueryData<Note[]>(['notes'], (old = []) =>
-        old.filter(note => note.id !== noteId)
+      const prevNotes = qc.getQueryData<Note[]>(["notes"]);
+      const prevSaved = qc.getQueryData<Note[]>(["saved-notes"]);
+      const prevNote = qc.getQueryData<Note>(["note", noteId]);
+
+      // Optimistik update
+      qc.setQueryData<Note[]>(["notes"], (old = []) =>
+        old.map((n) => (n.id === noteId ? { ...n, isSaved: !isSaved } : n))
+      );
+      qc.setQueryData<Note>(["note", noteId], (old) =>
+        old ? { ...old, isSaved: !isSaved } : old
       );
 
-      return { previousNotes };
-    },
-    onError: (err, noteId, context) => {
-      if (context?.previousNotes) {
-        queryClient.setQueryData(['notes'], context.previousNotes);
+      if (isSaved) {
+        qc.setQueryData<Note[]>(["saved-notes"], (old = []) =>
+          old.filter((n) => n.id !== noteId)
+        );
+      } else {
+        if (prevNote) {
+          qc.setQueryData<Note[]>(["saved-notes"], (old = []) => [
+            { ...prevNote, isSaved: true },
+            ...old,
+          ]);
+        }
       }
+
+      return { prevNotes, prevSaved, prevNote };
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] });
+    onError: (_err, _vars, context) => {
+      if (context?.prevNotes) qc.setQueryData(["notes"], context.prevNotes);
+      if (context?.prevSaved) qc.setQueryData(["saved-notes"], context.prevSaved);
+      if (context?.prevNote) qc.setQueryData(["note", context.prevNote.id], context.prevNote);
+      toast.error("Failed to update save status");
+    },
+    onSettled: (_data, _error, { noteId }) => {
+      qc.invalidateQueries({ queryKey: ["notes"] });
+      qc.invalidateQueries({ queryKey: ["saved-notes"] });
+      qc.invalidateQueries({ queryKey: ["note", noteId] });
     },
   });
 };
-
-// 🚀 Note'ni ulashish (share) uchun hook (bu yerda optimistik yondashuv shart emas, chunki UI o'zgarishi minimal)
-export const useShareNote = (): UseMutationResult<{ message: string; }, Error, { noteId: number; targetProfileId: number }> => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ noteId, targetProfileId }) => shareNote(noteId, targetProfileId),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] });
-      queryClient.invalidateQueries({ queryKey: ['note', variables.noteId] });
-    },
-  });
-
-
-};
-export const useSharedNotes = (): UseQueryResult<Note[], Error> => {
-  return useQuery({
-    queryKey: ['sharedNotes'],
-    queryFn: getSharedWithMeNotes,
-  });
-};
-

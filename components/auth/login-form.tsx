@@ -30,7 +30,6 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const router = useRouter();
-  // Translated "Login or password mistake." for the default server error message.
   const [serverError, setServerError] = React.useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
@@ -48,7 +47,6 @@ export function LoginForm() {
         router.push('/dashboard');
       },
       onError: (error: any) => {
-        // Translated default error message: "Login or password mistake."
         const errorMessage = error.response?.data?.message || "Login or password mistake.";
         setServerError(errorMessage);
       },

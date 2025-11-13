@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
-import { useSharedNotes } from "@/hooks/use-note";
+// import { useSharedNotes } from "@/hooks/use-note";
 import { useAddView } from "@/hooks/use-note-interactions";
 import { useMyProfile } from "@/hooks/use-profile";
 
@@ -37,7 +37,7 @@ const stripHtml = (htmlString: string) => {
 };
 
 export default function SharedNotesPage() {
-  const { data: sharedNotes, isLoading } = useSharedNotes();
+  // const { data: sharedNotes, isLoading } = useSharedNotes();
   const { data: myProfile } = useMyProfile();
   const [selectedNote, setSelectedNote] = useState<Note | any>(null);
   const currentProfileId = myProfile?.profile?.id;
@@ -59,7 +59,7 @@ export default function SharedNotesPage() {
   const handleCloseModal = () => {
     setSelectedNote(null);
   };
-
+  let isLoading = true;
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -77,13 +77,14 @@ export default function SharedNotesPage() {
           <div className="p-3 rounded-full bg-violet-100 dark:bg-violet-500/10">
             <Share2 className="w-6 h-6 text-violet-600 dark:text-violet-400" />
           </div>
+
           <div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Shared with me</h1>
-            <p className="text-slate-500 dark:text-slate-400">{sharedNotes?.length || 0} note shared</p>
+            {/* <p className="text-slate-500 dark:text-slate-400">{sharedNotes?.length || 0} note shared</p> */}
           </div>
         </motion.div>
 
-        {!sharedNotes || sharedNotes.length === 0 ? (
+        {/* {!sharedNotes || sharedNotes.length === 0 ? (
           <div className="text-center py-20 px-4 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg mt-6">
             <Share2 className="mx-auto h-12 w-12 text-slate-400 dark:text-slate-600" />
             <h3 className="mt-4 text-lg font-semibold text-slate-800 dark:text-slate-300">Hali ulashilgan eslatmalar yo'q</h3>
@@ -127,7 +128,7 @@ export default function SharedNotesPage() {
               </motion.div>
             ))}
           </motion.div>
-        )}
+        )} */}
       </div>
 
       {selectedNote && (

@@ -24,8 +24,7 @@ import {
   useFollowCounts,
 } from "@/hooks/use-follow";
 import { Note } from "@/types";
-import { useDeleteNote, useNotes } from "@/hooks/use-note";
-import { deleteNote } from "@/services/notes-service";
+import { useNotes } from "@/hooks/use-note";
 
 
 

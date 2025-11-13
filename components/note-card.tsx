@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import type { Note } from "@/services/notes-service";
-import { Profile } from "@/types";
+import { Note, Profile } from "@/types";
 
 const getInitials = (profile?: Profile): string => {
   if (!profile) return "U";
@@ -59,7 +58,7 @@ export const CompactNoteCard = ({
 }: CompactNoteCardProps) => {
   const author = note.profile;
   const isLiked = note.likes?.some(like => {
-    const likeProfileId = like?.profile?.id || like?.profileId;
+    const likeProfileId = like?.profile?.id || like?.profile?.id;
     return likeProfileId === currentProfileId;
   }) || false;
 
@@ -70,9 +69,9 @@ export const CompactNoteCard = ({
   // Get top 3 commenters/viewers for avatar stack
   const topCommenters = (note.comments || []).slice(0, 3).map((c, i) => ({
     id: i,
-    avatar: c.profile?.avatar,
-    username: c.profile?.username || "User",
-    initials: getInitials(c.profile),
+    avatar: c.author?.avatar,
+    username: c.author?.username || "User",
+    initials: getInitials(c.author),
   }));
 
   return (

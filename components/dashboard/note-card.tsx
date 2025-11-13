@@ -10,7 +10,8 @@ import {
   Eye,
   BookOpen, // Ilm ruhini aks ettirish uchun yangi icon
   Share2,
-  Pen, // Qo'shimcha aksiya uchun
+  Pen,
+  Bookmark, // Qo'shimcha aksiya uchun
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import type { Note, Profile } from "@/types"; // Bu type'lar aniq bo'lishi kerak
 import { formatRelativeTime } from "@/utils/utils"; // Utils to'g'ri joyda bo'lishi kerak
 import toast from "react-hot-toast";
+import { useToggleSaveNote } from "@/hooks/use-note";
 
 // --- Helper Functions ---
 const getInitials = (profile?: Profile): string => {
@@ -58,8 +60,13 @@ export const MinimalNoteCard: React.FC<MinimalNoteCardProps> = ({
   const commentsCount = note.commentsCount ?? note.comments?.length ?? 0;
   const viewsCount = note.viewsCount ?? 0;
 
+  const isSaved = note.isSaved ?? false;
+  const { mutate: toggleSave, isPending: savePending } = useToggleSaveNote();
 
-
+  const handleToggleSave = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleSave({ noteId: note.id, isSaved });
+  };
 
   const renderAuthorInfo = () => (
     <Link
@@ -121,6 +128,27 @@ export const MinimalNoteCard: React.FC<MinimalNoteCardProps> = ({
           </TooltipTrigger>
           <TooltipContent>
             View comments
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleToggleSave}
+              disabled={savePending}
+              className={`flex items-center gap-1 p-1 rounded-full transition-all duration-200
+                ${isSaved
+                  ? "text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30"
+                  : "hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-700"
+                }`}
+            >
+              <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current" : ""}`} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {savePending ? "Saving..." : isSaved ? "Unsave" : "Save note"}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

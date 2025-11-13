@@ -55,6 +55,7 @@ export interface Note {
   visibility?: 'public' | 'private' | 'unlisted';
   allow_comments?: boolean;
   share_to_twitter?: boolean;
+  isSaved?: boolean;
 
 }
 
