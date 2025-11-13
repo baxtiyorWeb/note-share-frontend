@@ -1,6 +1,10 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Heart, MessageSquare, Bookmark, Share2, Volume2, Send, Check, X, Play, Pause, Clock, UserCheck, UserPlus, Zap, TrendingUp, Lock } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import {
+  Heart, MessageSquare, Bookmark, Share2, Volume2, VolumeX, Send, Check, X,
+  Play, Pause, Clock, UserCheck, UserPlus, Zap, TrendingUp, Lock,
+  Search, Bell, Trash2, Sun, Moon,
+} from 'lucide-react';
 // Sizning komponentlaringizni import qilishni saqlab qoldim
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -15,6 +19,8 @@ interface Author {
   name: string;
   username: string;
   followers: number;
+  avgViews: number; // 🚀 Yangi: O'rtacha ko'rish
+  rating: number; // 🚀 Yangi: Reyting (1-5)
 }
 
 interface Reel {
@@ -27,19 +33,27 @@ interface Reel {
   comments: number;
   saves: number;
   duration: number; // sekundda
-  isPremium: boolean; // 🚀 Premium funksiyasi
+  isPremium: boolean;
+}
+
+interface Comment {
+  id: number;
+  user: { name: string, username: string, isVerified: boolean, isPremium?: boolean };
+  text: string;
+  time: string;
+  likes: number;
 }
 
 // --- Mock Data (O'zgartirilgan Mock Data) ---
 const mockReels: Reel[] = [
-  { id: 1, author: { name: "Bexruz", username: "@coder_bex", followers: 12500 }, title: "useEffect vs useLayoutEffect – farqi nima?", sound: "Original Audio", views: 2540, likes: 450, comments: 24, saves: 120, duration: 6.8, isPremium: false },
-  { id: 2, author: { name: "Gulnoza", username: "@frontend_guru", followers: 3200 }, title: "Tailwindda dark mode qanday ishlaydi?", sound: "Lo-Fi Beats", views: 5123, likes: 980, comments: 67, saves: 310, duration: 8.1, isPremium: true }, // Premium Kontent
-  { id: 3, author: { name: "Jasur", username: "@db_master", followers: 8900 }, title: "PostgreSQLda index qanday tezlashtiradi?", sound: "Tech Talk", views: 1800, likes: 230, comments: 12, saves: 80, duration: 5.5, isPremium: false },
-  { id: 4, author: { name: "Ali", username: "@dev_ops", followers: 15000 }, title: "Docker Containerlari bilan ishlash asoslari", sound: "System Sound", views: 15000, likes: 3500, comments: 120, saves: 450, duration: 7.2, isPremium: true }, // Premium Kontent
+  { id: 1, author: { name: "Bexruz", username: "@coder_bex", followers: 12500, avgViews: 3200, rating: 4.8 }, title: "useEffect vs useLayoutEffect – farqi nima?", sound: "Original Audio", views: 2540, likes: 450, comments: 24, saves: 120, duration: 6.8, isPremium: false },
+  { id: 2, author: { name: "Gulnoza", username: "@frontend_guru", followers: 3200, avgViews: 5500, rating: 4.9 }, title: "Tailwindda dark mode qanday ishlaydi?", sound: "Lo-Fi Beats", views: 5123, likes: 980, comments: 67, saves: 310, duration: 8.1, isPremium: true },
+  { id: 3, author: { name: "Jasur", username: "@db_master", followers: 8900, avgViews: 1900, rating: 4.5 }, title: "PostgreSQLda index qanday tezlashtiradi?", sound: "Tech Talk", views: 1800, likes: 230, comments: 12, saves: 80, duration: 5.5, isPremium: false },
+  { id: 4, author: { name: "Ali", username: "@dev_ops", followers: 15000, avgViews: 15000, rating: 5.0 }, title: "Docker Containerlari bilan ishlash asoslari", sound: "System Sound", views: 15000, likes: 3500, comments: 120, saves: 450, duration: 7.2, isPremium: true },
 ];
 
-// --- Mock Comments Data (Izoh Dizaynini Kengaytirish uchun) ---
-const mockComments = [
+// --- Mock Comments Data ---
+const mockComments: Comment[] = [
   { id: 1, user: { name: "Diyor", username: "@diyorbek", isVerified: true }, text: "Ajoyib! Qisqa va mazmunli, rahmat! 👏", time: "2h ago", likes: 15 },
   { id: 2, user: { name: "Shaxnoza", username: "@shaxn", isVerified: false }, text: "Bu menga dark mode'ni tushunishga juda yordam berdi!", time: "1h ago", likes: 5 },
   { id: 3, user: { name: "PremiumUser", username: "@pro_coder", isVerified: true, isPremium: true }, text: "Premium kontentni kutamiz! Ko'proq shu kabi videolar kerak.", time: "30m ago", likes: 28 },
@@ -47,11 +61,14 @@ const mockComments = [
 
 export default function NoteStreamPage() {
   // --- Asosiy State'lar ---
-  const [isSubscriber, setIsSubscriber] = useState(false); // 🚀 Premium State
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isSubscriber, setIsSubscriber] = useState(true); // Default true qilib qo'yildi
+  const [selectedIndex, setSelectedIndex] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [confetti, setConfetti] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(""); // 🚀 Yangi: Qidiruv
+  const [isDarkMode, setIsDarkMode] = useState(true); // 🚀 Yangi: Theme
 
   // --- Reel State'lar ---
   const [isPlaying, setIsPlaying] = useState(mockReels.map(() => true));
@@ -61,14 +78,24 @@ export default function NoteStreamPage() {
   const [saves, setSaves] = useState(mockReels.map(r => r.saves));
   const [isSaved, setIsSaved] = useState(mockReels.map(() => false));
   const [copied, setCopied] = useState(false);
-  const [confetti, setConfetti] = useState(false);
+  const [viewed, setViewed] = useState(mockReels.map(() => false)); // 🚀 Yangi: Ko'rilganlik
 
   // --- Embla Carousel & Refs ---
   const autoplayPlugin = Autoplay({ delay: 7000, stopOnInteraction: false }) as unknown as any;
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [autoplayPlugin]);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const currentReel = mockReels[selectedIndex];
-  const isCurrentReelLocked = currentReel.isPremium && !isSubscriber; // 🚀 Premium Logic
+  const isCurrentReelLocked = currentReel?.isPremium && !isSubscriber;
+
+  // --- 🚀 Yangi: Filtered Reels (Qidiruv natijasi) ---
+  const filteredReels = useMemo(() => {
+    if (!searchQuery) return mockReels;
+    return mockReels.filter(reel =>
+      reel.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      reel.author.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      reel.author.username.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
 
   // --- Helper Functions ---
   const formatNumber = (num: number) => {
@@ -86,20 +113,32 @@ export default function NoteStreamPage() {
   // --- Carousel Select Callback ---
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
-    setSelectedIndex(emblaApi.selectedScrollSnap());
+    const newIndex = emblaApi.selectedScrollSnap();
+    setSelectedIndex(newIndex);
     setShowComments(false);
     // Faqat tanlangan videoni ijro etishni boshlash/davom ettirish
-    setIsPlaying(p => p.map((_, i) => i === emblaApi.selectedScrollSnap()));
+    setIsPlaying(p => p.map((_, i) => i === newIndex));
   }, [emblaApi]);
+
+  // --- 🚀 Yangi: Video tugashini kuzatish (Autoplay next) ---
+  const handleVideoEnded = useCallback(() => {
+    setViewed(p => {
+      const newViewed = [...p];
+      newViewed[selectedIndex] = true; // Ko'rilgan deb belgilash
+      return newViewed;
+    });
+
+    if (emblaApi) {
+      emblaApi.scrollNext(); // Keyingi Reel'ga o'tish
+    }
+  }, [emblaApi, selectedIndex]);
 
   // --- useEffect'lar ---
   useEffect(() => {
     if (!emblaApi) return;
     onSelect();
     emblaApi.on('select', onSelect);
-    // Autoplayni o'chirib qo'yish
-    const plugins = emblaApi.plugins() as { autoplay?: { stop: () => void } };
-    plugins.autoplay?.stop();
+
     return () => {
       emblaApi.off('select', onSelect);
     };
@@ -108,6 +147,12 @@ export default function NoteStreamPage() {
   useEffect(() => {
     videoRefs.current.forEach((video, i) => {
       if (video) {
+        // Video Event Listenerlarini yangilash
+        video.removeEventListener('ended', handleVideoEnded);
+        if (i === selectedIndex) {
+          video.addEventListener('ended', handleVideoEnded);
+        }
+
         // Premium kontent bloklangan bo'lsa, videoni to'xtatish
         if (isCurrentReelLocked && i === selectedIndex) {
           video.pause();
@@ -119,12 +164,18 @@ export default function NoteStreamPage() {
         video.muted = isMuted;
       }
     });
-  }, [selectedIndex, isMuted, isPlaying, isCurrentReelLocked]);
+    // Cleanup: Keyingi Reel'ga o'tishdan oldin listenerni o'chirish
+    return () => {
+      if (videoRefs.current[selectedIndex]) {
+        videoRefs.current[selectedIndex]?.removeEventListener('ended', handleVideoEnded);
+      }
+    };
+  }, [selectedIndex, isMuted, isPlaying, isCurrentReelLocked, handleVideoEnded]);
 
 
   // --- Event Handlers ---
   const togglePlayPause = () => {
-    if (isCurrentReelLocked) return; // 🚀 Premium: Bloklangan bo'lsa, ishlamaydi
+    if (isCurrentReelLocked) return;
 
     setIsPlaying(p => {
       const newPlaying = [...p];
@@ -140,28 +191,33 @@ export default function NoteStreamPage() {
   };
 
   const handleDoubleTap = () => {
-    if (isLiked[selectedIndex] || isCurrentReelLocked) return; // 🚀 Premium: Bloklangan bo'lsa, ishlamaydi
-    toggleLike();
-    setConfetti(true);
-    setTimeout(() => setConfetti(false), 2000);
+    if (isCurrentReelLocked) return; // 🚀 Premium: Bloklangan bo'lsa, ishlamaydi
+    if (!isLiked[selectedIndex]) { // Faqat like qo'yilmagan bo'lsa confetti chiqar
+      toggleLike();
+      setConfetti(true);
+      setTimeout(() => setConfetti(false), 2000);
+    }
   };
 
   const toggleLike = () => {
-    // 🚀 Premium: Logikada bloklash mumkin, lekin odatda Like barcha uchun ochiq bo'ladi
+    // 🚀 Yangi: "Undo" Like funksiyasi uchun like sonini avtomatik sozlash
     setIsLiked(p => {
       const newLiked = [...p];
-      newLiked[selectedIndex] = !newLiked[selectedIndex];
+      const currentState = newLiked[selectedIndex];
+      newLiked[selectedIndex] = !currentState;
+
+      setLikes(l => {
+        const newLikes = [...l];
+        newLikes[selectedIndex] += currentState ? -1 : 1;
+        return newLikes;
+      });
+
       return newLiked;
-    });
-    setLikes(p => {
-      const newLikes = [...p];
-      newLikes[selectedIndex] += isLiked[selectedIndex] ? -1 : 1;
-      return newLikes;
     });
   };
 
   const toggleSave = () => {
-    if (isCurrentReelLocked) return; // 🚀 Premium: Bloklangan bo'lsa, ishlamaydi
+    if (isCurrentReelLocked) return;
     setIsSaved(p => {
       const newSaved = [...p];
       newSaved[selectedIndex] = !newSaved[selectedIndex];
@@ -185,33 +241,47 @@ export default function NoteStreamPage() {
     }
   };
 
-  // 🚀 Premium: Obuna bo'lish funksiyasi
   const subscribeToPremium = () => {
+    // Premium obuna logikasi
     setIsSubscriber(true);
   };
 
+  // 🚀 Yangi: Theme Switch
+  const toggleTheme = () => {
+    setIsDarkMode(p => !p);
+  };
 
   return (
     <>
       {confetti && <Confetti recycle={false} numberOfPieces={180} gravity={0.08} />}
 
-      <div className="relative flex flex-col h-screen bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 overflow-hidden">
+      {/* 🚀 Yangi: Theme Class */}
+      <div className={cn(
+        "relative flex flex-col h-screen overflow-hidden",
+        isDarkMode ? "bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 text-white" : "bg-white text-gray-900"
+      )}>
 
         {/* Animated Background */}
         <div className="absolute inset-0 opacity-50">
-          <div className="absolute inset-0 bg-gradient-to-tr from-violet-800/30 via-purple-800/20 to-pink-800/30 blur-3xl" />
+          <div className={cn(
+            "absolute inset-0 blur-3xl",
+            isDarkMode ? "bg-gradient-to-tr from-violet-800/30 via-purple-800/20 to-pink-800/30" : "bg-gradient-to-tr from-violet-200/50 via-purple-200/40 to-pink-200/50"
+          )} />
         </div>
 
 
-
-
-        {/* Carousel - Responsive */}
-        <div className="flex-1 relative overflow-hidden flex items-center justify-center px-4 md:px-12 py-8 pt-20"> {/* pt-20 Headerni hisobga olish */}
+        {/* --- Carousel Qismi --- */}
+        <div className="flex-1 select-none relative overflow-hidden flex items-center justify-center px-4 md:px-12 py-8 pt-20">
           <div className="embla w-full max-w-7xl" ref={emblaRef}>
             <div className="embla__container flex items-center">
-              {mockReels.map((reel, index) => {
-                const isActive = index === selectedIndex;
+              {filteredReels.map((reel, index) => {
+                const globalIndex = mockReels.findIndex(r => r.id === reel.id);
+                const isActive = globalIndex - 1 === selectedIndex;
                 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
+                if (filteredReels.length > 0 && globalIndex === -1) return null; // Qidiruvdan yo'q bo'lsa o'tkazib yuborish
+
+                const isReelLocked = reel.isPremium && !isSubscriber;
 
                 return (
                   <div
@@ -236,19 +306,20 @@ export default function NoteStreamPage() {
                       {/* Card */}
                       <motion.div
                         className={cn(
-                          "relative rounded-3xl md:rounded-4xl overflow-hidden shadow-2xl",
-                          "bg-gradient-to-br from-white/8 to-white/4 backdrop-blur-3xl",
-                          "border border-white/20",
-                          "before:absolute before:inset-0 before:bg-gradient-to-t before:from-black/70 before:via-black/30 before:to-transparent",
-                          isActive && "ring-0 ring-violet-500/60 shadow-violet-500/40"
+                          "relative rounded-3xl md:rounded-4xl overflow-hidden shadow-2xl transition-all duration-500",
+                          isDarkMode
+                            ? "bg-gradient-to-br from-white/8 to-white/4 backdrop-blur-3xl border border-white/20 before:from-black/70 before:via-black/30"
+                            : "bg-gray-100/80 backdrop-blur-xl border border-gray-300 before:from-black/50 before:via-black/10",
+                          "before:absolute before:inset-0 before:bg-gradient-to-t before:to-transparent",
+                          isActive && "ring-4 ring-offset-2 ring-offset-transparent ring-violet-500/60 shadow-violet-500/40"
                         )}
                         style={{ height: isMobile ? '570px' : '680px' }}
                         whileHover={isActive ? { scale: 1.02 } : {}}
                       >
                         {/* Video */}
                         <video
-                          ref={el => { videoRefs.current[index] = el; }}
-                          src={`/videos/reel-${index + 2}.mp4`} // Video fayl nomlari mock-up
+                          ref={el => { videoRefs.current[globalIndex] = el; }}
+                          src={`/videos/reel-${globalIndex + 2}.mp4`}
                           className="w-full h-full object-cover"
                           loop
                           muted={isMuted}
@@ -257,8 +328,8 @@ export default function NoteStreamPage() {
                           onClick={togglePlayPause}
                         />
 
-                        {/* 🚀 Premium Overlay (Bloklash) */}
-                        {isActive && reel.isPremium && !isSubscriber && (
+                        {/* 🚀 Yangi: Premium Blur/Fade Overlay */}
+                        {isActive && isReelLocked && (
                           <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -279,7 +350,7 @@ export default function NoteStreamPage() {
 
 
                         {/* Play/Pause Overlay */}
-                        {isActive && !isCurrentReelLocked && !isPlaying[index] && (
+                        {isActive && !isReelLocked && !isPlaying[globalIndex] && (
                           <motion.div
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -290,7 +361,7 @@ export default function NoteStreamPage() {
                             <Pause className="w-20 h-20 text-white/90 drop-shadow-lg" />
                           </motion.div>
                         )}
-                        {isActive && isPlaying[index] && !isCurrentReelLocked && (
+                        {isActive && isPlaying[globalIndex] && !isReelLocked && (
                           <motion.div
                             key="play-icon"
                             initial={{ opacity: 0 }}
@@ -303,27 +374,48 @@ export default function NoteStreamPage() {
                           </motion.div>
                         )}
 
-                        {/* Progress Bar (Video Line - Tepa Qismda) */}
-                        {isActive && !isCurrentReelLocked && (
+                        {/* 🚀 Yangi: Mute/Unmute Ikonkasi (Top Right) */}
+                        {isActive && !isReelLocked && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.2, delay: 0.5 }}
+                            className="absolute top-5 right-5 z-10"
+                          >
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md hover:bg-black/60 text-white/80"
+                              onClick={(e) => { e.stopPropagation(); setIsMuted(p => !p); }}
+                            >
+                              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                            </Button>
+                          </motion.div>
+                        )}
+
+                        {/* Progress Bar */}
+                        {isActive && !isReelLocked && (
                           <div className="absolute top-0 left-0 right-0 h-1.5 bg-white/30">
+                            {/* 🚀 Yangi: Ko'rilgan Reel'lar uchun rang farqi */}
+                            {viewed[globalIndex] && (
+                              <div className="absolute inset-0 h-full bg-gray-500/50" />
+                            )}
                             <motion.div
                               className="h-full bg-gradient-to-r from-violet-500 via-pink-500 to-purple-600"
                               initial={{ width: "0%" }}
-                              animate={{ width: "100%" }}
-                              transition={{ duration: reel.duration, ease: "linear", repeat: Infinity }}
+                              animate={{ width: isPlaying[globalIndex] ? "100%" : "0%" }}
+                              transition={{ duration: reel.duration, ease: "linear", repeat: isPlaying[globalIndex] ? Infinity : 0 }}
                             />
                           </div>
                         )}
 
-                        {/* Duration Time (Tepa Chap Qismda) */}
+                        {/* Duration Time & Premium Tag */}
                         {isActive && (
                           <div className="absolute top-5 left-5 text-white/90 text-sm md:text-base font-medium drop-shadow-md z-10 flex items-center gap-1 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full">
                             <Clock className="w-4 h-4" />
                             <span>{formatDuration(reel.duration)}</span>
                           </div>
                         )}
-
-                        {/* 🚀 Premium Tag (Tepa O'ng Qismda) */}
                         {reel.isPremium && (
                           <div className="absolute top-5 right-5 z-10 flex items-center gap-1 bg-yellow-500 text-black px-3 py-1 rounded-full text-xs md:text-sm font-bold shadow-lg">
                             <Zap className="w-4 h-4 fill-black" />
@@ -331,9 +423,9 @@ export default function NoteStreamPage() {
                           </div>
                         )}
 
-                        {/* Author va Follow (Pastki Chap Tomonda) */}
+                        {/* Author va Follow */}
                         <div className="absolute bottom-5 left-5 right-5 text-white flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 group">
                             <Avatar className="w-12 h-12 md:w-14 md:h-14 ring-2 ring-white/40">
                               <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-white font-bold text-lg">
                                 {reel.author.name[0]}
@@ -343,6 +435,14 @@ export default function NoteStreamPage() {
                               <p className="text-base md:text-lg font-bold drop-shadow-md">{reel.author.name}</p>
                               <p className="text-white/70 text-xs md:text-sm">{reel.author.username}</p>
                             </div>
+                            {/* 🚀 Yangi: Avtor Statistika Popoveri (Desktopda ishlatiladi) */}
+                            <div className={cn(
+                              "absolute left-0 bottom-full mb-2 p-3 rounded-lg shadow-xl bg-black/80 backdrop-blur-md text-white/90 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none hidden md:block"
+                            )}>
+                              <p className='font-bold mb-1'>Author Stats:</p>
+                              <p><TrendingUp className='w-3 h-3 inline mr-1' /> Avg Views: {formatNumber(reel.author.avgViews)}</p>
+                              <p><Zap className='w-3 h-3 inline mr-1 fill-yellow-400' /> Rating: {reel.author.rating} / 5.0</p>
+                            </div>
                           </div>
 
                           {/* Follow Tugmasi */}
@@ -350,21 +450,19 @@ export default function NoteStreamPage() {
                             <Button
                               className={cn(
                                 "rounded-full px-5 py-3 text-sm font-semibold shadow-lg transition-all duration-300",
-                                isFollowing[index] ? "bg-white text-violet-600 hover:bg-white/90" : "bg-violet-600 hover:bg-violet-700 text-white"
+                                isFollowing[globalIndex] ? "bg-white text-violet-600 hover:bg-white/90" : "bg-violet-600 hover:bg-violet-700 text-white"
                               )}
-                              onClick={() => { /* toggleFollow funksiyasi joyiga qo'yiladi */ }}
+                              onClick={() => setIsFollowing(p => { const n = [...p]; n[globalIndex] = !n[globalIndex]; return n; })}
                             >
-                              {isFollowing[index] ? <><UserCheck className="w-4 h-4 mr-2" /> Following</> : <><UserPlus className="w-4 h-4 mr-2" /> Follow</>}
+                              {isFollowing[globalIndex] ? <><UserCheck className="w-4 h-4 mr-2" /> Following</> : <><UserPlus className="w-4 h-4 mr-2" /> Follow</>}
                             </Button>
                           </motion.div>
                         </div>
 
 
-                        {/* Caption va Views/Followers */}
+                        {/* Caption, Views, Sound */}
                         <div className="absolute bottom-24 left-5 right-20 text-white space-y-2">
                           <p className="text-lg md:text-xl font-bold line-clamp-2 drop-shadow-xl">{reel.title}</p>
-
-                          {/* Views va Followers Ko'rsatkichlari */}
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -372,7 +470,7 @@ export default function NoteStreamPage() {
                             className="flex items-center gap-4 text-sm text-white/80 font-medium"
                           >
                             <span className="flex items-center gap-1">
-                              <TrendingUp className="w-4 h-4" /> {/* TrendingUp ikonkasi qo'shildi */}
+                              <TrendingUp className="w-4 h-4" />
                               {formatNumber(reel.views)} Views
                             </span>
                             <span className="flex items-center gap-1">
@@ -391,9 +489,9 @@ export default function NoteStreamPage() {
 
                         {/* Actions (O'ng Tomonda) */}
                         <div className="absolute right-4 bottom-28 flex flex-col gap-6">
-                          {[{ Icon: Heart, count: likes[index], active: isLiked[index], color: "text-red-500", onClick: toggleLike },
+                          {[{ Icon: Heart, count: likes[globalIndex], active: isLiked[globalIndex], color: "text-red-500", onClick: toggleLike },
                           { Icon: MessageSquare, count: reel.comments, onClick: () => setShowComments(true) },
-                          { Icon: Bookmark, count: saves[index], active: isSaved[index], onClick: toggleSave },
+                          { Icon: Bookmark, count: saves[globalIndex], active: isSaved[globalIndex], onClick: toggleSave },
                           { Icon: Share2, onClick: shareReel }
                           ].map(({ Icon, count, active, color, onClick }, i) => (
                             <motion.div key={i} whileTap={{ scale: 0.8 }} className="flex flex-col items-center">
@@ -405,7 +503,7 @@ export default function NoteStreamPage() {
                                   active && color
                                 )}
                                 onClick={onClick}
-                                disabled={Icon !== Heart && isCurrentReelLocked} // 🚀 Premium: Save/Comment bloklanishi mumkin
+                                disabled={Icon !== Heart && isReelLocked}
                               >
                                 <Icon className="w-7 h-7 md:w-8 md:h-8" fill={Icon === Heart && active ? "currentColor" : "none"} />
                               </Button>
@@ -426,7 +524,7 @@ export default function NoteStreamPage() {
           </div>
         </div>
 
-        {/* Comment Sheet (Izoh Qismi Dizayni Yaxshilandi) */}
+        {/* Comment Sheet */}
         <AnimatePresence>
           {showComments && (
             <motion.div
@@ -438,7 +536,7 @@ export default function NoteStreamPage() {
               <div className="p-5 border-b border-white/10 flex items-center justify-between sticky top-0 bg-black/90 z-10">
                 <h3 className="text-white text-xl md:text-2xl font-extrabold flex items-center gap-2">
                   <MessageSquare className="w-6 h-6 text-violet-400" />
-                  Izohlar ({formatNumber(currentReel.comments)})
+                  Izohlar ({formatNumber(currentReel?.comments || 0)})
                 </h3>
                 <Button variant="ghost" size="icon" onClick={() => setShowComments(false)} className="text-white/80 hover:bg-white/10">
                   <X className="w-6 h-6" />
@@ -466,12 +564,18 @@ export default function NoteStreamPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-white font-semibold text-sm">@{c.user.username}</p>
                         {c.user.isVerified && <Check className="w-4 h-4 text-blue-400 fill-blue-400" />}
-                        {c.user.isPremium && <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />} {/* Premium Label */}
+                        {c.user.isPremium && <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
                         <span className="text-white/50 text-xs ml-auto">{c.time}</span>
                       </div>
                       <p className="text-white/90 text-base">{c.text}</p>
                     </div>
                     <div className="flex flex-col items-center self-start ml-2">
+                      {/* 🚀 Yangi: Izohni O'chirish (Mock) */}
+                      {c.user.username === "@diyorbek" && ( // O'zimizning izohimiz deb faraz qilaylik
+                        <Button variant="ghost" size="icon" className="text-white/50 hover:text-red-500 h-8 w-8 transition-colors mb-1">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" className="text-white/50 hover:text-red-500 h-8 w-8 transition-colors">
                         <Heart className="w-4 h-4" />
                       </Button>
