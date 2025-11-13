@@ -311,9 +311,9 @@ export default function NoteStreamPage() {
                             ? "bg-gradient-to-br from-white/8 to-white/4 backdrop-blur-3xl border border-white/20 before:from-black/70 before:via-black/30"
                             : "bg-gray-100/80 backdrop-blur-xl border border-gray-300 before:from-black/50 before:via-black/10",
                           "before:absolute before:inset-0 before:bg-gradient-to-t before:to-transparent",
-                          isActive && "ring-4 ring-offset-2 ring-offset-transparent ring-violet-500/60 shadow-violet-500/40"
+                          isActive && "ring-0 ring-offset-0 ring-offset-transparent shadow-violet-500/40"
                         )}
-                        style={{ height: isMobile ? '570px' : '680px' }}
+                        style={{ height: isMobile ? '95vh' : '680px' }}
                         whileHover={isActive ? { scale: 1.02 } : {}}
                       >
                         {/* Video */}
