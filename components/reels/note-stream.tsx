@@ -276,7 +276,7 @@ export default function NoteStreamPage() {
             <div className="embla__container flex items-center">
               {filteredReels.map((reel, index) => {
                 const globalIndex = mockReels.findIndex(r => r.id === reel.id);
-                const isActive = globalIndex - 1 === selectedIndex;
+                const isActive = globalIndex === selectedIndex;
                 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
                 if (filteredReels.length > 0 && globalIndex === -1) return null; // Qidiruvdan yo'q bo'lsa o'tkazib yuborish
