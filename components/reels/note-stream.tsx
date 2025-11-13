@@ -271,13 +271,13 @@ export default function NoteStreamPage() {
 
 
         {/* --- Carousel Qismi --- */}
-        <div className="flex-1 select-none relative overflow-hidden flex items-center justify-center px-4 md:px-12 py-8 pt-20">
+        <div className="flex-1 select-none relative overflow-hidden flex items-center justify-center px-4 md:px-12 py-8 ">
           <div className="embla w-full max-w-7xl" ref={emblaRef}>
             <div className="embla__container flex items-center">
               {filteredReels.map((reel, index) => {
-                const globalIndex = mockReels.findIndex(r => r.id === reel.id);
-                const isActive = globalIndex === selectedIndex;
                 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+                const globalIndex = mockReels.findIndex(r => r.id === reel.id);
+                const isActive = isMobile ? globalIndex === selectedIndex : globalIndex - 1 === selectedIndex;
 
                 if (filteredReels.length > 0 && globalIndex === -1) return null; // Qidiruvdan yo'q bo'lsa o'tkazib yuborish
 
@@ -299,9 +299,9 @@ export default function NoteStreamPage() {
                         opacity: isActive ? 1 : (isMobile ? 0.6 : 0.75),
                         filter: isActive ? 'blur(0px)' : (isMobile ? 'blur(1.5px)' : 'blur(1px)')
                       }}
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      transition={{ type: "spring", stiffness: 100, damping: 10 }}
                       className="relative h-full"
-                      style={{ perspective: 1200 }}
+                      style={{ perspective: 1000 }}
                     >
                       {/* Card */}
                       <motion.div
