@@ -313,7 +313,7 @@ export default function NoteStreamPage() {
                           "before:absolute before:inset-0 before:bg-gradient-to-t before:to-transparent",
                           isActive && "ring-0 ring-offset-0 ring-offset-transparent shadow-violet-500/40"
                         )}
-                        style={{ height: isMobile ? '95vh' : '680px' }}
+                        style={{ height: isMobile ? '100dvh' : '680px' }}
                         whileHover={isActive ? { scale: 1.02 } : {}}
                       >
                         {/* Video */}
