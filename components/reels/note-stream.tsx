@@ -271,9 +271,9 @@ export default function NoteStreamPage() {
 
 
         {/* --- Carousel Qismi --- */}
-        <div className="flex-1 select-none relative overflow-hidden flex items-center justify-center px-4 md:px-12 py-8 ">
+        <div className="flex-1 select-none relative overflow-hidden flex items-center justify-center px-4 md:px-12  ">
           <div className="embla w-full max-w-7xl" ref={emblaRef}>
-            <div className="embla__container flex items-center">
+            <div className="embla__container flex items-center ">
               {filteredReels.map((reel, index) => {
                 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
                 const globalIndex = mockReels.findIndex(r => r.id === reel.id);
@@ -288,21 +288,27 @@ export default function NoteStreamPage() {
                     key={reel.id}
                     className="embla__slide flex-none"
                     style={{
-                      width: isMobile ? '100%' : '420px',
+                      width: isMobile ? '100dvw' : '420px',
                       paddingLeft: isMobile ? '0' : '32px',
                       paddingRight: isMobile ? '0' : '32px'
                     }}
                   >
                     <motion.div
                       animate={{
-                        scale: isActive ? 1 : (isMobile ? 0.85 : 0.92),
-                        opacity: isActive ? 1 : (isMobile ? 0.6 : 0.75),
-                        filter: isActive ? 'blur(0px)' : (isMobile ? 'blur(1.5px)' : 'blur(1px)')
+                        scale: isActive ? 1 : (isMobile ? 0.9 : 0.9),
+                        opacity: isActive ? 1 : 0.9,
+                        filter: isActive ? "blur(0px)" : "blur(4px)"
                       }}
-                      transition={{ type: "spring", stiffness: 100, damping: 10 }}
-                      className="relative h-full"
+                      transition={{
+                        type: "spring",
+                        stiffness: 100,   // TEZLIK
+                        damping: 10,      // KAM TARANGLIK
+                        mass: 0.1         // ANIMATSIYA OG‘IRLIGI KAM → TEZROQ
+                      }}
+                      className="relative h-[100dvh]"
                       style={{ perspective: 1000 }}
                     >
+
                       {/* Card */}
                       <motion.div
                         className={cn(
@@ -319,8 +325,8 @@ export default function NoteStreamPage() {
                         {/* Video */}
                         <video
                           ref={el => { videoRefs.current[globalIndex] = el; }}
-                          src={`/videos/reel-${globalIndex + 2}.mp4`}
-                          className="w-full h-full object-cover"
+                          src={`https://www.pexels.com/video/woman-walking-on-the-railing-5244400`}
+                          className="w-full h-[100dvh] object-cover"
                           loop
                           muted={isMuted}
                           playsInline
@@ -334,7 +340,7 @@ export default function NoteStreamPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.3 }}
-                            className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg text-white p-8 text-center"
+                            className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg text-white  text-center"
                           >
                             <Lock className="w-16 h-16 text-yellow-400 mb-4" />
                             <h3 className="text-2xl font-bold mb-2">Premium Kontent</h3>
